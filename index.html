@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>[작전명: 그린 플래닛]</title>
+<title>[작전명: 2050 그린 플래닛]</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
 
@@ -62,6 +62,56 @@
     transition: opacity 0.4s, transform 0.4s; white-space: nowrap;
   }
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* UNI 안내: 말풍선 + 핵심 카드 */
+  #game-content.guide #media-container video { max-height: 32vh; }
+  .uni-say {
+    display: inline-flex; align-items: center; gap: 0.6rem; margin-top: 0.1rem;
+    background: #e1f5fe; color: #01579b; font-size: 1.15rem; line-height: 1.45;
+    padding: 0.55rem 1.1rem; border-radius: 1.2rem 1.2rem 1.2rem 0.3rem; text-align: left;
+  }
+  .uni-say b { flex: none; background: #0288d1; color: #fff; border-radius: 0.6rem; padding: 0.05rem 0.55rem; font-size: 0.9rem; }
+  .guide-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin-top: 0.7rem; }
+  .gcard {
+    background: #f8fbf8; border: 2px solid #dcebdd; border-radius: 1rem; padding: 0.7rem 0.8rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  }
+  .gcard svg { width: 2rem; height: 2rem; color: #4caf50; }
+  .gcard .gt { font-size: 1.25rem; color: #2e7d32; }
+  .gcard .gd { font-size: 1rem; color: #546e7a; line-height: 1.4; }
+  .gcard.blue { background: #f3fbff; border-color: #b3e5fc; }
+  .gcard.blue svg { color: #29b6f6; }
+  .gcard.blue .gt { color: #0277bd; }
+
+  /* 게임 타이틀 */
+  #media-container { position: relative; }
+  #game-container.title-mode #header, #game-container.title-mode #scenario-title { display: none; }
+  #game-container.title-mode #media-container video { max-height: 62vh; max-width: 60rem; background: #0b1a14; }
+  .title-overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    pointer-events: none; animation: titleIn 1.6s ease-out 0.4s both;
+    background: radial-gradient(ellipse 45% 50% at center, rgba(0,25,15,0.6) 0%, rgba(0,25,15,0.25) 55%, transparent 80%);
+  }
+  .title-overlay .op {
+    font-size: 1.3rem; letter-spacing: 0.6em; padding-left: 0.6em; color: #e0f7ea;
+    text-shadow: 0 0 8px rgba(0,255,170,0.8), 0 2px 6px rgba(0,0,0,0.8);
+    border-top: 2px solid rgba(120,255,190,0.7); border-bottom: 2px solid rgba(120,255,190,0.7); padding-top: 0.2rem; padding-bottom: 0.2rem;
+  }
+  .title-overlay .yr {
+    font-size: 6.2rem; line-height: 1.05; margin-top: 0.4rem;
+    background: linear-gradient(180deg, #ffffff 0%, #d7ffe9 40%, #6dffb0 70%, #1fbf6a 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 10px rgba(46,255,123,0.75)) drop-shadow(0 4px 8px rgba(0,0,0,0.85));
+  }
+  .title-overlay .nm {
+    font-size: 3.4rem; line-height: 1.1; color: #eafff2;
+    text-shadow: 0 0 12px #2eff7b, 0 0 26px rgba(46,255,123,0.7), 0 4px 10px rgba(0,0,0,0.9);
+  }
+  @keyframes titleIn {
+    0% { opacity: 0; transform: scale(1.25); filter: blur(10px); }
+    60% { opacity: 1; transform: scale(0.98); filter: blur(0); }
+    100% { opacity: 1; transform: scale(1); }
+  }
 
   /* UNI 과학 개념 */
   .concept {
@@ -199,7 +249,7 @@
 
 <div id="game-container">
   <div id="toast" class="num"></div>
-  <h1 id="header">[작전명: 그린 플래닛]</h1>
+  <h1 id="header">[작전명: 2050 그린 플래닛]</h1>
 
   <div id="stats-bar">
     <span id="year-stat" class="chip year num"></span>
@@ -213,7 +263,7 @@
     <div id="game-content">
       <h2 id="scenario-title"></h2>
       <div id="media-container"></div>
-      <p id="scenario-description"></p>
+      <div id="scenario-description"></div>
     </div>
     <div id="choices"></div>
   </div>
@@ -341,7 +391,7 @@
   const ENDINGS = [
     { test: (s) => s.pollution >= 60, title: "회색빛 미래",
       text: "무분별한 개발로 그린 플래닛은 공기도 물도 뿌연 회색 도시가 되었습니다.<br>2050년에서 온 메시지는 바뀌지 않았습니다...",
-      reply: "신호가 약하다... 이곳의 하늘은 여전히 회색이다.<br>하지만 아직 늦지 않았다.<br>다시 한번 그린 플래닛의 미래를 바꿔 주길 바란다.",
+      reply: "신호가 약하다... 이곳의 하늘은 여전히 회색이다.<br>하지만 아직 늦지 않았다.<br>다시 한번 2050년의 미래를 바꿔 주길 바란다.",
       media: "ending-gray.mp4" },
     { test: (s) => s.nature >= 90, title: "환경 중심의 미래",
       text: "{name}의 선택으로 그린 플래닛은 자연과 공존하는 깨끗한 곳이 되었습니다.<br>다만 살림은 넉넉하지 않아 앞으로의 과제도 남았습니다.",
@@ -397,21 +447,23 @@
     return v;
   }
 
-  function updateMedia(name) {
+  function updateMedia(name, overlay = '') {
     const mc = $('media-container');
     mc.style.opacity = 0;
     setTimeout(() => {
       mc.innerHTML = '';
       if (name) mc.appendChild(makeVideo(name));
+      if (overlay) mc.insertAdjacentHTML('beforeend', overlay);
       mc.style.opacity = 1;
     }, 300);
   }
 
-  function setScene(title, desc, media) {
-    $('game-content').classList.remove('previewing');
+  function setScene(title, desc, media, overlay) {
+    $('game-content').classList.remove('previewing', 'guide');
+    $('game-container').classList.remove('title-mode');
     $('scenario-title').textContent = title;
     $('scenario-description').innerHTML = desc;
-    updateMedia(media);
+    updateMedia(media, overlay);
   }
 
   function setButtons(list) {
@@ -510,7 +562,7 @@
     setScene('반응 없는 안경',
       "안경을 써도 초록빛만 나올 뿐 아무 반응이 없다.<br>타임캡슐에 붙어 있는 QR 코드를 인식해야 할 것 같다.",
       'intro-3-glasses.mp4');
-    setButtons([{ text: 'QR 코드 인식', className: 'action-button-red', onclick: qrRecognized }]);
+    setButtons([{ text: 'QR 코드 인식', className: 'action-button-red', onclick: titleScene }]);
   }
 
   // 영상을 먼저 보여 주고, 잠시 뒤 팝업 (화면을 누르면 바로)
@@ -520,6 +572,15 @@
     const go = () => { clearTimeout(popupTimer); $('game-content').onclick = null; fn(); };
     popupTimer = setTimeout(go, ms);
     setTimeout(() => { $('game-content').onclick = go; }, 400);
+  }
+
+  // 게임 타이틀: 영상 위에 제목 글자
+  function titleScene() {
+    $('stats-bar').style.display = 'none';
+    setScene('', '', 'title.mp4',
+      '<div class="title-overlay"><div class="op">작전명</div><div class="yr num">2050</div><div class="nm">그린 플래닛</div></div>');
+    $('game-container').classList.add('title-mode');
+    setButtons([{ text: '임무 시작', className: 'action-button-red', onclick: qrRecognized }]);
   }
 
   function qrRecognized() {
@@ -533,7 +594,7 @@
     setButtons([]);
     afterVideo(() => typeWriter(
       "<<긴급 메시지 수신>>",
-      "여기는 2050년, 생존자 캠프다.<br>과거의 무분별한 개발로 지구 생태계는 회복하기 어려운 상태에 빠졌다.<br>우리는 타임머신이 '그린'이라는 이름을 찾아가도록 만들었다.<br>그래서 이름에 '그린'이 들어간 너희 반, 그린 401에 도착한 것이다.<br>미래 기술을 담은 에코렌즈를 함께 보낸다.<br>에코렌즈로 그린 플래닛의 미래를 바꿔 주길 바란다.",
+      "여기는 2050년, 생존자 캠프다.<br>과거의 무분별한 개발로 지구 생태계는 회복하기 어려운 상태에 빠졌다.<br>우리는 타임머신이 '그린'이라는 이름을 찾아가도록 만들었다.<br>그래서 이름에 '그린'이 들어간 너희 반, 그린 401에 도착한 것이다.<br>미래 기술을 담은 에코렌즈를 함께 보낸다.<br>작전명은 '2050 그린 플래닛'.<br>너희의 선택으로 2050년의 미래를 바꿔 주길 바란다.",
       { buttonText: '에코렌즈 UNI 활성화', action: uniGuide }
     ));
   }
@@ -543,13 +604,13 @@
     setButtons([]);
     afterVideo(() => typeWriter(
       "AI 가이드 'UNI' 활성화",
-      "반갑습니다, 그린 401 대원님.<br>저는 선택을 함께할 AI 가이드 UNI입니다.<br>지금부터 대원님은 '그린 플래닛'의 관리자가 되어<br>미래를 바꾸는 선택을 시작합니다.<br>먼저 대원님의 이름을 등록해 주세요.",
+      "반갑습니다, 그린 401 대원님.<br>저는 선택을 함께할 AI 가이드 UNI입니다.<br>지금부터 '작전명: 2050 그린 플래닛'을 시작합니다.<br>대원님은 그린 플래닛의 관리자가 되어<br>2050년의 미래를 바꾸는 선택을 하게 됩니다.<br>먼저 대원님의 이름을 등록해 주세요.",
       { buttonText: '이름 등록', action: nameScene }
     ), 2500);
   }
 
   function nameScene() {
-    setScene('대원 이름 등록', "UNI: 미래를 바꿀 이름, 그린 플래닛은 대원님의 활약을 기억할 것입니다.", 'intro-4-name.mp4');
+    setScene('대원 이름 등록', "UNI: 2050년의 미래를 바꿀 이름, 그린 플래닛은 대원님의 활약을 기억할 것입니다.", 'intro-4-name.mp4');
     const c = $('choices');
     c.className = '';
     c.innerHTML = '<input type="text" id="agent-name" maxlength="12" placeholder="이름 입력" autocomplete="off">';
@@ -568,22 +629,41 @@
     howToScene();
   }
 
+  // 안내 화면: UNI 말풍선 한 줄 + 아이콘 카드 3개
+  const ICON = {
+    split: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-7M12 14 6 8M12 14l6-6M3 9V4h5M21 9V4h-5"/></svg>',
+    chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+    cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+    eye: '<svg viewBox="0 0 34 17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="2" y="3" width="12" height="10" rx="4"/><rect x="20" y="3" width="12" height="10" rx="4"/><path d="M14 7q3-2.5 6 0"/></svg>',
+    three: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9.5"/><text x="12" y="16.5" text-anchor="middle" font-size="12" fill="currentColor" stroke="none" font-family="Jua, sans-serif">3</text></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+  };
+  function guideHTML(say, cards, cls = '') {
+    return `<div class="uni-say"><b>UNI</b><span>${say}</span></div>
+      <div class="guide-cards">${cards.map((c) => `<div class="gcard ${cls}">${ICON[c[0]]}<div class="gt">${c[1]}</div><div class="gd">${c[2]}</div></div>`).join('')}</div>`;
+  }
+
   function howToScene() {
-    setScene('UNI 사용법 안내',
-      `${agent()}, 지금부터 그린 플래닛의 미래를 결정합니다.<br>`
-      + `매년 주어진 상황에서 두 가지 선택지 중 하나를 고릅니다.<br>`
-      + `선택에 따라 <b>경제, 자연, 오염</b> 수치가 바뀝니다.<br>`
-      + `<b>${START_YEAR}년부터 ${START_YEAR + 5}년까지</b> 6년 동안 그린 플래닛을 이끌어 주세요.`,
-      'intro-5-uni.mp4');
+    setScene('UNI 사용법 안내', guideHTML(
+      `${agent()}님, 지금부터 2050년의 미래를 바꿀 선택을 시작합니다.`,
+      [
+        ['split', '2개 중 1개 선택', '해마다 나오는 상황에서<br>하나를 골라요'],
+        ['chart', '경제 · 자연 · 오염', '선택에 따라<br>세 가지 숫자가 바뀌어요'],
+        ['cal', '6년 동안', `${START_YEAR}년부터<br>${START_YEAR + 5}년까지 이끌어요`],
+      ]), 'intro-5-uni.mp4');
+    $('game-content').classList.add('guide');
     setButtons([{ text: '에코렌즈 안내', className: 'action-button-red', onclick: ecoLensGuide }]);
   }
 
   function ecoLensGuide() {
-    setScene('UNI 에코렌즈 안내',
-      "에코렌즈에는 2050년의 미래 기술이 적용되어 있어<br>그린 플래닛의 미래를 바꿀 수 있습니다.<br>"
-      + "선택지 옆 '에코렌즈' 버튼을 누르면 그 선택의 결과를 미리 볼 수 있습니다.<br>"
-      + "단, <b>모두 3번</b>만 쓸 수 있으니 신중하게 사용해 주세요.",
-      'intro-5-uni.mp4');
+    setScene('UNI 에코렌즈 안내', guideHTML(
+      '에코렌즈에는 2050년 미래 기술이 담겨 있어 그린 플래닛의 미래를 바꿀 수 있어요.',
+      [
+        ['eye', '미리보기', '선택지 옆 버튼을 누르면<br>결과 영상이 보여요'],
+        ['three', '모두 3번', '6년 동안<br>3번만 쓸 수 있어요'],
+        ['lock', '숫자는 비밀', '점수 변화는<br>결정한 뒤에 알 수 있어요'],
+      ], 'blue'), 'intro-5-uni.mp4');
+    $('game-content').classList.add('guide');
     setButtons([{ text: '선택 시작', className: 'action-button-red', onclick: startFirstYear }]);
   }
 
@@ -774,10 +854,10 @@
     try {
       if (window.google && google.script && google.script.url) {
         google.script.url.getLocation((loc) => {
-          if (loc && loc.parameter && loc.parameter.qr === QR_CODE) qrRecognized();
+          if (loc && loc.parameter && loc.parameter.qr === QR_CODE) titleScene();
         });
       } else if (new URLSearchParams(location.search).get('qr') === QR_CODE) {
-        qrRecognized();
+        titleScene();
       }
     } catch (e) {}
   };
