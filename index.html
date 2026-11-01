@@ -898,6 +898,7 @@
       dual = { A: pick3(gameState), B: pick3(gameState) };
       dual.startA = { ...dual.A }; dual.startB = { ...dual.B };
     }
+    gameState.history.push({ year: gameState.year, L: 'A·B', text: `A. ${sc.choices[0].text}<br>B. ${sc.choices[1].text}` });
     applyEffects(dual.A, sc.choices[0].effects);
     applyEffects(dual.B, sc.choices[1].effects);
     setSplit(`${gameState.year}년 결과 한번에 보기`, sc.choices.map((ch, i) => ({
@@ -932,10 +933,8 @@
       return { k, video: end.media, title: end.title,
         text: withName(end.text) + `<br><span class="final-stats"><span class="num">자연 ${st.nature}</span><span class="num">오염 ${st.pollution}</span><span class="num">경제 ${st.economy}</span></span>` };
     }));
-    setButtons([
-      { text: '게임 후기 남기기', className: 'action-button-red', onclick: () => window.open(MENTI_URL, '_blank') },
-      { text: '처음부터 다시하기', className: 'sub-button', onclick: startScene },
-    ]);
+    // 두 미래의 답장을 차례로 ('다음'으로 넘김)
+    endingStep(['A', 'B'].map((k) => `[${k}길 미래]<br>` + withName(ENDINGS.find((e) => e.test(dual[k])).reply)).join('||'));
   }
 
   // 에코렌즈 버튼 상태: ready(사용 가능) / viewing(미리보기 중) / seen(다시 보기, 무료) / none(남은 렌즈 없음)
@@ -1064,21 +1063,28 @@
     setScene(end.title,
       withName(end.text) + `<br><span class="final-stats"><span class="num">자연 ${s.nature}</span><span class="num">오염 ${s.pollution}</span><span class="num">경제 ${s.economy}</span></span>`,
       end.media);
-    setButtons([
-      { text: '게임 후기 남기기', className: 'action-button-red', onclick: () => window.open(MENTI_URL, '_blank') },
-      { text: '나의 선택 기록', className: 'next-year', onclick: showHistory },
-      { text: '처음부터 다시하기', className: 'sub-button', onclick: startScene },
-    ]);
-    // 영상을 먼저 보여 주고 생존자 캠프의 답장
-    afterVideo(() => typeWriter('<<2050년 생존자 캠프 답장>>', withName(end.reply),
-      { buttonText: '나의 선택 기록', action: showHistory }), 3500);
+    endingStep(withName(end.reply));
   }
 
-  function showHistory() {
+  /* 결말 순서: 결과 화면 → '생존자 캠프 답장 보기' → 답장 → 나의 선택 기록 → 게임 후기 남기기 */
+  function endingStep(reply) {
+    setButtons([{ text: '생존자 캠프 답장 보기', className: 'action-button-red', onclick: () =>
+      typeWriter('<<2050년 생존자 캠프 답장>>', reply, { buttonText: '나의 선택 기록', action: () => showHistory(true) }) }]);
+  }
+
+  function finalButtons() {
+    setButtons([
+      { text: '게임 후기 남기기', className: 'action-button-red', onclick: () => window.open(MENTI_URL, '_blank') },
+      { text: '나의 선택 기록', className: 'next-year', onclick: () => showHistory(false) },
+      { text: '처음부터 다시하기', className: 'sub-button', onclick: startScene },
+    ]);
+  }
+
+  function showHistory(firstTime) {
     const rows = gameState.history.map((h) =>
       `<li><span class="y num">${h.year}</span><span class="ab">${h.L}</span><span>${h.text}</span></li>`).join('');
     showModal(`${agent()}의 선택 기록`, `<ul class="history">${rows}</ul>`,
-      [{ text: '닫기', className: 'next-year-button', onclick: hideModal }]);
+      [{ text: firstTime ? '확인' : '닫기', className: 'next-year-button', onclick: () => { hideModal(); if (firstTime) finalButtons(); } }]);
   }
 
   /* ========================= 시작 ========================= */
