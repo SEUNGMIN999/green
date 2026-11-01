@@ -119,6 +119,16 @@
     line-height: 1.7; cursor: pointer;
   }
   #modal-content.year-content { background: transparent; border: none; box-shadow: none; }
+  /* 다음 해로 넘어갈 때: 화면이 검게 바뀌고 초록 글씨가 떠오름 */
+  #modal.dark { background: #000; animation: toDark 3s ease-in-out forwards; }
+  @keyframes toDark { 0% { background: rgba(0,0,0,0); } 18%, 82% { background: #000; } 100% { background: rgba(0,0,0,0.9); } }
+  #modal.dark .year-popup-text { animation: yearRise 3s ease-in-out forwards; }
+  @keyframes yearRise {
+    0%, 15% { opacity: 0; transform: translateY(2.5rem) scale(0.9); filter: blur(6px); }
+    40% { opacity: 1; transform: translateY(0) scale(1.05); filter: blur(0); }
+    80% { opacity: 1; transform: translateY(0) scale(1.05); }
+    100% { opacity: 0; transform: translateY(-1rem) scale(1.1); }
+  }
   #modal-content.confirm-content { max-width: 28rem; }
   #modal-content h2 { font-size: 1.7rem; margin: 0 0 0.7rem; }
   .confirm-text { color: #2980b9; font-size: 1.2rem; margin: 0 0 0.4rem; line-height: 1.5; }
@@ -140,7 +150,10 @@
   .summary-row { display: flex; align-items: center; gap: 0.9rem; }
   .summary-row .label { width: 3.2rem; }
   .summary-row .val { width: 3.8rem; text-align: right; }
-  .delta { font-size: 1rem; padding: 0.1rem 0.6rem; border-radius: 0.6rem; color: #fff; }
+  .delta { font-size: 1rem; padding: 0.1rem 0.6rem; border-radius: 0.6rem; color: #fff; opacity: 0; transform: translateY(0.6rem) scale(0.8); transition: opacity 0.35s, transform 0.35s cubic-bezier(.3,1.6,.6,1); }
+  .delta.show { opacity: 1; transform: none; }
+  .summary-row .val { transition: color 0.2s, transform 0.2s; display: inline-block; }
+  .summary-row .val.moving { color: #f57c00; transform: scale(1.12); }
   .delta.up { background: #4caf50; }
   .delta.down { background: #f44336; }
   .delta.zero { background: #9e9e9e; }
@@ -394,6 +407,7 @@
       btn.onclick = b.onclick;
       mb.appendChild(btn);
     });
+    $('modal').classList.toggle('dark', contentClass === 'year-content');
     $('modal').style.display = 'flex';
   }
   function hideModal() { $('modal').style.display = 'none'; $('modal-content').onclick = null; }
@@ -427,6 +441,7 @@
 
   /* ========================= 도입 ========================= */
   function startScene() {
+    clearTimeout(popupTimer); $('game-content').onclick = null;
     gameState = { ...START_STATE };
     $('stats-bar').style.display = 'none';
     setScene('2026년 11월 2일 그린 401 교실',
@@ -462,28 +477,39 @@
     setButtons([{ text: 'QR 코드 인식', className: 'action-button-red', onclick: qrRecognized }]);
   }
 
+  // 영상을 먼저 보여 주고, 잠시 뒤 팝업 (화면을 누르면 바로)
+  let popupTimer = null;
+  function afterVideo(fn, ms = 3000) {
+    clearTimeout(popupTimer);
+    const go = () => { clearTimeout(popupTimer); $('game-content').onclick = null; fn(); };
+    popupTimer = setTimeout(go, ms);
+    setTimeout(() => { $('game-content').onclick = go; }, 400);
+  }
+
   function qrRecognized() {
+    $('stats-bar').style.display = 'none';
     setScene('QR 인식 완료', "안경에 초록 불빛이 들어오며 메시지가 재생된다.", 'intro-4-name.mp4');
-    setButtons([]);
-    setTimeout(emergencyMessage, 900);
+    setButtons([{ text: '메시지 재생', className: 'action-button-red', onclick: emergencyMessage }]);
   }
 
   function emergencyMessage() {
     setScene('긴급 메시지', "2050년 생존자 캠프에서 보낸 신호", 'intro-msg-camp.mp4');
-    typeWriter(
+    setButtons([]);
+    afterVideo(() => typeWriter(
       "<<긴급 메시지 수신>>",
       "여기는 2050년, 생존자 캠프다.<br>과거의 무분별한 개발로 지구 생태계는 회복하기 어려운 상태에 빠졌다.<br>우리는 타임머신이 '그린'이라는 이름을 찾아가도록 만들었다.<br>그래서 이름에 '그린'이 들어간 너희 반, 그린 401에 도착한 것이다.<br>미래 기술을 담은 에코렌즈를 함께 보낸다.<br>에코렌즈로 그린 플래닛의 미래를 바꿔 주길 바란다.",
       { buttonText: '에코렌즈 UNI 활성화', action: uniGuide }
-    );
+    ));
   }
 
   function uniGuide() {
     setScene('UNI 활성화', "에코렌즈에 AI 가이드 UNI가 깨어난다.", 'intro-4-name.mp4');
-    typeWriter(
+    setButtons([]);
+    afterVideo(() => typeWriter(
       "AI 가이드 'UNI' 활성화",
       "반갑습니다, 그린 401 대원님.<br>저는 선택을 함께할 AI 가이드 UNI입니다.<br>지금부터 대원님은 '그린 플래닛'의 관리자가 되어<br>미래를 바꾸는 선택을 시작합니다.<br>먼저 대원님의 이름을 등록해 주세요.",
       { buttonText: '이름 등록', action: nameScene }
-    );
+    ), 2500);
   }
 
   function nameScene() {
@@ -526,19 +552,21 @@
   }
 
   function startFirstYear() {
-    $('stats-bar').style.display = 'flex';
-    updateUI();
+    setScene('', '', null);
+    setButtons([]);
     showYearTransition(gameState.year);
   }
 
   /* ========================= 상황 ========================= */
   function showYearTransition(year) {
     showModal('', `<span class="year-popup-text num">${year}년</span>`, [], 'year-content');
-    setTimeout(() => { hideModal(); renderScenario(); }, 2500);
+    setTimeout(() => { hideModal(); renderScenario(); }, 3000);
   }
 
   function renderScenario() {
     const sc = scenarios[gameState.year - START_YEAR];
+    $('stats-bar').style.display = 'flex';
+    updateUI();
     yearStart = { economy: gameState.economy, nature: gameState.nature, pollution: gameState.pollution };
     setScene(withName(sc.title), withName(sc.description), sc.image);
     const c = $('choices');
@@ -580,14 +608,14 @@
     const pv = document.createElement('div');
     pv.className = 'preview';
     pv.appendChild(makeVideo(ch.resultVideo));
-    pv.insertAdjacentHTML('beforeend', `<span class="badge">에코렌즈</span><button class="close">닫기</button><div class="cap">${ch.resultText.replace(/<br>/g, ' ')}</div>`);
+    pv.insertAdjacentHTML('beforeend', `<span class="badge">에코렌즈</span><button class="close">닫기</button>`);
     pv.querySelector('.close').onclick = () => { pv.remove(); setLensBtn(card, 'seen'); };
     card.appendChild(pv);
     setLensBtn(card, 'viewing');
   }
 
   function confirmChoice(ch, L) {
-    showModal(`${L} 결정`, `<p class="confirm-text">${ch.text}</p>`, [
+    showModal(`${agent()}님,<br>이 선택이 맞으십니까?`, `<p class="confirm-text">${L}. ${ch.text}</p>`, [
       { text: '취소', className: 'btn-ghost', onclick: hideModal },
       { text: '결정', onclick: () => { hideModal(); handleChoice(ch); } },
     ], 'confirm-content');
@@ -599,34 +627,54 @@
     gameState.nature += e.nature || 0;
     gameState.pollution += e.pollution || 0;
     clampState();
-    updateUI();
     showResult(choice);
   }
 
   function showResult(choice) {
     setScene(choice.resultTitle, choice.resultText, choice.resultVideo);
     const last = gameState.year === START_YEAR + scenarios.length - 1;
-    setButtons([{ text: `${gameState.year}년 결산`, className: 'next-year', onclick: () => showYearlySummary(last) }]);
+    setButtons([{ text: `${gameState.year}년 결과`, className: 'next-year', onclick: () => showYearlySummary(last) }]);
   }
 
-  function summaryRow(label, now, before, bad) {
+  function summaryRow(key, label, now, before, bad) {
     const d = now - before;
     const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'zero';
-    return `<div class="summary-row"><span class="label">${label}</span><span class="val num">${now}</span><span class="delta num ${bad ? 'bad ' : ''}${cls}">${fmt(d)}</span></div>`;
+    return `<div class="summary-row"><span class="label">${label}</span><span class="val num" data-key="${key}" data-from="${before}" data-to="${now}">${before}</span><span class="delta num ${bad ? 'bad ' : ''}${cls}">${fmt(d)}</span></div>`;
+  }
+
+  // 숫자가 이전 값에서 새 값으로 늘거나 줄어드는 모습
+  function animateSummary() {
+    const vals = document.querySelectorAll('.summary .val');
+    const deltas = document.querySelectorAll('.summary .delta');
+    deltas.forEach((el, i) => setTimeout(() => el.classList.add('show'), 350 + i * 250));
+    const start = performance.now() + 500, dur = 1200;
+    const step = (t) => {
+      const k = Math.max(0, Math.min(1, (t - start) / dur));
+      const e = 1 - Math.pow(1 - k, 3);
+      vals.forEach((el) => {
+        const a = +el.dataset.from, b = +el.dataset.to;
+        el.textContent = Math.round(a + (b - a) * e);
+        if (a !== b) el.classList.toggle('moving', k > 0 && k < 1);
+      });
+      if (k < 1) requestAnimationFrame(step);
+      else updateUI();
+    };
+    requestAnimationFrame(step);
   }
 
   function showYearlySummary(last) {
     const s = gameState, b = yearStart;
     const html = `<div class="summary">
-      ${summaryRow('경제', s.economy, b.economy, false)}
-      ${summaryRow('자연', s.nature, b.nature, false)}
-      ${summaryRow('오염', s.pollution, b.pollution, true)}
+      ${summaryRow('economy', '경제', s.economy, b.economy, false)}
+      ${summaryRow('nature', '자연', s.nature, b.nature, false)}
+      ${summaryRow('pollution', '오염', s.pollution, b.pollution, true)}
     </div>`;
-    showModal(`${s.year}년 결산`, html, [{
+    showModal(`${s.year}년 결과`, html, [{
       text: last ? '최종 결과 확인' : '다음 해로',
       className: last ? 'action-button-red' : 'next-year-button',
       onclick: () => { hideModal(); last ? showEndGame() : proceedToNextYear(); },
     }]);
+    animateSummary();
   }
 
   function proceedToNextYear() {
