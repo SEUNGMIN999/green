@@ -284,6 +284,10 @@
        QR로 들어온 학생은 바로 메시지 활성화 장면부터 시작
      ========================================================= */
   const QR_CODE = 'green401';
+  /* 교사용 / 학생용
+     - 학생용(기본, QR 주소 포함): 태블릿 문자 메시지 → 게임 타이틀 → 에코렌즈 작동 → …
+     - 교사용(주소 뒤에 ?mode=teacher): 문자 메시지 → 붙박이장 빛 → 타임캡슐 → 에코렌즈 착용 → 게임 타이틀 → … */
+  let MODE = 'student';
   const START_YEAR = 2026;
   const MENTI_URL = 'https://www.menti.com/alrpz4rjtgdm';
   const TYPE_SPEED = 35; // 글자당 ms
@@ -541,7 +545,9 @@
   function openMessage() {
     typeWriter('의문의 메시지',
       "왼쪽 문 앞 붙박이장 안에 있는<br>나를 찾아주세요.",
-      { buttonText: '붙박이장 확인', action: classroomScene });
+      MODE === 'teacher'
+        ? { buttonText: '붙박이장 확인', action: classroomScene }
+        : { buttonText: '타임캡슐 발견', action: titleScene });
   }
 
   function classroomScene() {
@@ -553,16 +559,9 @@
 
   function capsuleScene() {
     setScene('붙박이장 안의 타임캡슐',
-      "붙박이장 안에 미래에서 전송된 타임캡슐이 놓여 있다.<br>캡슐을 열어 보니 안경들이 들어 있다.",
+      "붙박이장 안에 미래에서 전송된 타임캡슐이 놓여 있다.<br>캡슐을 열어 보니 미래에서 온 에코렌즈가 들어 있다.",
       'intro-2-capsule.mp4');
-    setButtons([{ text: '안경 써 보기', className: 'action-button-red', onclick: glassesScene }]);
-  }
-
-  function glassesScene() {
-    setScene('반응 없는 안경',
-      "안경을 써도 초록빛만 나올 뿐 아무 반응이 없다.<br>타임캡슐에 붙어 있는 QR 코드를 인식해야 할 것 같다.",
-      'intro-3-glasses.mp4');
-    setButtons([{ text: 'QR 코드 인식', className: 'action-button-red', onclick: titleScene }]);
+    setButtons([{ text: '에코렌즈 착용', className: 'action-button-red', onclick: titleScene }]);
   }
 
   // 영상을 먼저 보여 주고, 잠시 뒤 팝업 (화면을 누르면 바로)
@@ -585,7 +584,7 @@
 
   function qrRecognized() {
     $('stats-bar').style.display = 'none';
-    setScene('QR 인식 완료', "안경에 초록 불빛이 들어오며 메시지가 재생된다.", 'intro-4-name.mp4');
+    setScene('에코렌즈 작동', "안경에 초록 불빛이 들어오며 메시지가 재생된다.", 'intro-4-name.mp4');
     setButtons([{ text: '메시지 재생', className: 'action-button-red', onclick: emergencyMessage }]);
   }
 
@@ -849,17 +848,19 @@
 
   /* ========================= 시작 ========================= */
   // QR(?qr=green401)로 들어오면 메시지 활성화부터, 아니면 교실 장면부터
+  // 주소의 ?mode=teacher 로 교사용, 그 밖(QR 주소 포함)은 학생용
   window.onload = () => {
-    startScene();
+    const begin = (param) => {
+      MODE = param && param.mode === 'teacher' ? 'teacher' : 'student';
+      startScene();
+    };
     try {
       if (window.google && google.script && google.script.url) {
-        google.script.url.getLocation((loc) => {
-          if (loc && loc.parameter && loc.parameter.qr === QR_CODE) titleScene();
-        });
-      } else if (new URLSearchParams(location.search).get('qr') === QR_CODE) {
-        titleScene();
+        google.script.url.getLocation((loc) => begin(loc && loc.parameter));
+        return;
       }
-    } catch (e) {}
+      begin(Object.fromEntries(new URLSearchParams(location.search)));
+    } catch (e) { begin(null); }
   };
 </script>
 
