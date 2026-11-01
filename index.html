@@ -46,7 +46,37 @@
 
   /* 장면: 영상과 설명을 가운데 크게, 그 아래 버튼 */
   #main { display: flex; flex-direction: column; gap: 0.8rem; }
-  #game-content { position: relative; }
+  #game-content { position: relative; display: flex; flex-direction: column; }
+  #game-content h2 { order: 0; }
+  #media-container { order: 1; }
+  #scenario-description { order: 2; }
+  /* 에코렌즈 미리보기 중: 설명을 영상 위로 올려 가리지 않게 */
+  #game-content.previewing #scenario-description { order: 1; margin: 0 0 0.55rem; }
+  #game-content.previewing #media-container { order: 2; }
+
+  /* 해마다 들어오는 기본 변화 알림 */
+  #toast {
+    position: absolute; top: 0.8rem; left: 50%; transform: translate(-50%, -1rem);
+    background: #2e7d32; color: #fff; font-size: 1.05rem; padding: 0.55rem 1.2rem; border-radius: 2rem;
+    box-shadow: 0 0.4rem 1rem rgba(0,0,0,0.2); opacity: 0; pointer-events: none; z-index: 6;
+    transition: opacity 0.4s, transform 0.4s; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* UNI 과학 개념 */
+  .concept {
+    display: inline-block; margin-top: 0.5rem; padding: 0.45rem 0.95rem;
+    background: #e1f5fe; color: #01579b; border-radius: 0.8rem; font-size: 1.05rem; line-height: 1.5;
+  }
+  .concept b { color: #0288d1; margin-right: 0.35rem; }
+
+  /* 나의 선택 기록 */
+  .history { list-style: none; padding: 0; margin: 0.2rem 0 0; text-align: left; display: flex; flex-direction: column; gap: 0.45rem; }
+  .history li { display: flex; gap: 0.7rem; align-items: baseline; font-size: 1.1rem; color: #37474f; }
+  .history .y { flex: none; background: #2e7d32; color: #fff; border-radius: 0.6rem; padding: 0.05rem 0.6rem; font-size: 0.95rem; }
+  .history .ab { flex: none; color: #66bb6a; }
+
+  #modal-buttons button.wait { visibility: hidden; }
   #game-content h2 { font-size: 1.45rem; margin: 0 0 0.5rem; }
   #media-container { transition: opacity 0.4s ease-in-out; }
   #media-container video {
@@ -168,6 +198,7 @@
 <body>
 
 <div id="game-container">
+  <div id="toast" class="num"></div>
   <h1 id="header">[작전명: 그린 플래닛]</h1>
 
   <div id="stats-bar">
@@ -244,7 +275,7 @@
       "ending-balance.mp4": "https://cdn.pixabay.com/video/2025/10/15/310123.mp4"
   };
 
-  const START_STATE = { agentName: '', year: START_YEAR, economy: 1000, nature: 50, pollution: 10, ecoLensUses: 3 };
+  const START_STATE = { agentName: '', history: [], year: START_YEAR, economy: 1000, nature: 50, pollution: 10, ecoLensUses: 3 };
   let gameState = { ...START_STATE };
   let yearStart = null; // 결산에서 변화량 계산용
 
@@ -255,8 +286,8 @@
       description: "그린 플래닛에 인구가 늘어나 살 집이 부족해졌습니다. 어떻게 해결할까요?",
       image: "2026-0.mp4",
       choices: [
-        { text: "숲을 밀고 대규모 아파트 단지 건설", effects: { economy: -200, nature: -20, pollution: +15 }, resultVideo: "2026-a.mp4", resultTitle: "결과: 빠른 성장과 그림자", resultText: "대규모 아파트 단지가 빠르게 들어서며 많은 사람이 이사 왔지만,<br>아름답던 숲이 사라져 동물들이 떠나갔습니다." },
-        { text: "비용이 더 들지만, 숲을 보존하는 친환경 주택 건설", effects: { economy: -400, nature: +10, pollution: +2 }, resultVideo: "2026-b.mp4", resultTitle: "결과: 자연과 함께하는 보금자리", resultText: "시간과 돈은 더 들었지만,<br>숲과 어우러진 주택단지가 완성되어 주민들의 만족도가 높습니다." }
+        { text: "숲을 밀고 대규모 아파트 단지 건설", effects: { economy: -200, nature: -20, pollution: +15 }, resultVideo: "2026-a.mp4", concept: "숲이 사라지면 그곳에 살던 생물은 먹이와 사는 곳을 함께 잃어요.", resultTitle: "결과: 빠른 성장과 그림자", resultText: "대규모 아파트 단지가 빠르게 들어서며 많은 사람이 이사 왔지만,<br>아름답던 숲이 사라져 동물들이 떠나갔습니다." },
+        { text: "비용이 더 들지만, 숲을 보존하는 친환경 주택 건설", effects: { economy: -400, nature: +10, pollution: +2 }, resultVideo: "2026-b.mp4", concept: "숲을 지키면 나무, 동물, 흙, 물이 서로 영향을 주고받는 생태계가 유지돼요.", resultTitle: "결과: 자연과 함께하는 보금자리", resultText: "시간과 돈은 더 들었지만,<br>숲과 어우러진 주택단지가 완성되어 주민들의 만족도가 높습니다." }
       ]
     },
     {
@@ -264,8 +295,8 @@
       description: "한 기업에서 그린 플래닛에 공장을 짓고 싶다고 연락이 왔습니다.",
       image: "2027-0.mp4",
       choices: [
-        { text: "세금을 많이 내는 화학 공장 유치", effects: { economy: +500, nature: -25, pollution: +20 }, resultVideo: "2027-a.mp4", resultTitle: "결과: 검은 연기와 경제 성장", resultText: "화학 공장 덕분에 그린 플래닛의 살림은 튼튼해졌지만,<br>강물이 오염되고 하늘이 뿌옇게 변하기 시작했습니다." },
-        { text: "친환경 에너지(태양광) 기업 유치", effects: { economy: -100, nature: +15, pollution: +1 }, resultVideo: "2027-b.mp4", resultTitle: "결과: 깨끗한 에너지의 시작", resultText: "태양광 기업이 들어와 깨끗한 에너지를 만들기 시작했습니다.<br>일자리는 공장보다 적지만 그린 플래닛의 이미지가 좋아졌습니다." }
+        { text: "세금을 많이 내는 화학 공장 유치", effects: { economy: +500, nature: -25, pollution: +20 }, resultVideo: "2027-a.mp4", concept: "공장 폐수와 매연은 물과 공기 같은 비생물 요소를 바꾸어 생물이 살기 어렵게 해요.", resultTitle: "결과: 검은 연기와 경제 성장", resultText: "화학 공장 덕분에 그린 플래닛의 살림은 튼튼해졌지만,<br>강물이 오염되고 하늘이 뿌옇게 변하기 시작했습니다." },
+        { text: "친환경 에너지(태양광) 기업 유치", effects: { economy: -100, nature: +15, pollution: +1 }, resultVideo: "2027-b.mp4", concept: "햇빛으로 전기를 만들면 공기와 물을 덜 더럽혀 생물이 사는 환경을 지킬 수 있어요.", resultTitle: "결과: 깨끗한 에너지의 시작", resultText: "태양광 기업이 들어와 깨끗한 에너지를 만들기 시작했습니다.<br>일자리는 공장보다 적지만 그린 플래닛의 이미지가 좋아졌습니다." }
       ]
     },
     {
@@ -273,8 +304,8 @@
       description: "차가 많아져서 도로가 꽉 막혀요. 주민들이 불편을 겪고 있습니다.",
       image: "2028-0.mp4",
       choices: [
-        { text: "산 하나를 깎아 넓은 도로를 뚫는다", effects: { economy: -300, nature: -15, pollution: +10 }, resultVideo: "2028-a.mp4", resultTitle: "결과: 편리함의 대가", resultText: "산에 길을 뚫어 교통은 편리해졌지만,<br>산사태 위험이 커지고 또 하나의 숲이 사라졌습니다." },
-        { text: "전기 버스, 자전거 도로 등 대중교통 확충", effects: { economy: -200, nature: +10, pollution: -5 }, resultVideo: "2028-b.mp4", resultTitle: "결과: 건강한 도시의 길", resultText: "주민들이 자전거와 전기버스를 이용하며 공기가 한결 깨끗해졌고,<br>사람들은 더욱 건강해졌습니다." }
+        { text: "산 하나를 깎아 넓은 도로를 뚫는다", effects: { economy: -300, nature: -15, pollution: +10 }, resultVideo: "2028-a.mp4", concept: "산을 깎으면 생물이 사는 곳이 끊겨 동물들이 먹이를 찾아 이동하기 어려워져요.", resultTitle: "결과: 편리함의 대가", resultText: "산에 길을 뚫어 교통은 편리해졌지만,<br>산사태 위험이 커지고 또 하나의 숲이 사라졌습니다." },
+        { text: "전기 버스, 자전거 도로 등 대중교통 확충", effects: { economy: -200, nature: +10, pollution: -5 }, resultVideo: "2028-b.mp4", concept: "자동차 배기가스가 줄면 공기가 깨끗해져 사람과 생물 모두 건강해져요.", resultTitle: "결과: 건강한 도시의 길", resultText: "주민들이 자전거와 전기버스를 이용하며 공기가 한결 깨끗해졌고,<br>사람들은 더욱 건강해졌습니다." }
       ]
     },
     {
@@ -282,8 +313,8 @@
       description: "그린 플래닛이 커지면서 쓰레기가 너무 많이 나오고 있어요. 어떻게 할까요?",
       image: "2029-0.mp4",
       choices: [
-        { text: "외곽에 쓰레기 매립지 건설", effects: { economy: -100, nature: -20, pollution: +15 }, resultVideo: "2029-a.mp4", resultTitle: "결과: 눈 가리고 아웅", resultText: "쓰레기가 눈앞에서는 사라졌지만,<br>매립지 주변의 땅과 지하수가 오염되고 있다는 소문이 돕니다." },
-        { text: "재활용 센터를 짓고 분리배출 캠페인 실시", effects: { economy: -300, nature: +15, pollution: -8 }, resultVideo: "2029-b.mp4", resultTitle: "결과: 쓰레기는 자원이다!", resultText: "재활용 센터와 주민들의 노력 덕분에 버려지는 쓰레기가 크게 줄었고,<br>새로운 자원으로 다시 태어나고 있습니다." }
+        { text: "외곽에 쓰레기 매립지 건설", effects: { economy: -100, nature: -20, pollution: +15 }, resultVideo: "2029-a.mp4", concept: "땅에 묻힌 쓰레기는 흙과 지하수를 오염시켜 식물과 동물에게 영향을 줘요.", resultTitle: "결과: 눈 가리고 아웅", resultText: "쓰레기가 눈앞에서는 사라졌지만,<br>매립지 주변의 땅과 지하수가 오염되고 있다는 소문이 돕니다." },
+        { text: "재활용 센터를 짓고 분리배출 캠페인 실시", effects: { economy: -300, nature: +15, pollution: -8 }, resultVideo: "2029-b.mp4", concept: "쓰레기를 줄이고 다시 쓰면 생물이 사는 땅과 물을 지킬 수 있어요.", resultTitle: "결과: 쓰레기는 자원이다!", resultText: "재활용 센터와 주민들의 노력 덕분에 버려지는 쓰레기가 크게 줄었고,<br>새로운 자원으로 다시 태어나고 있습니다." }
       ]
     },
     {
@@ -291,8 +322,8 @@
       description: "그린 플래닛이 쓰는 전기가 부족해서 정전이 자주 일어나요. 발전소를 더 지어야 합니다.",
       image: "2030-0.mp4",
       choices: [
-        { text: "빠르고 값싸게 화력 발전소 증설", effects: { economy: -200, nature: -30, pollution: +25 }, resultVideo: "2030-a.mp4", resultTitle: "결과: 편리함 뒤의 미세먼지", resultText: "전기 공급은 안정되었지만,<br>화력 발전소의 미세먼지 때문에 주민들의 건강이 위협받기 시작했습니다." },
-        { text: "바다에 해상 풍력 발전소 건설", effects: { economy: -500, nature: -5, pollution: +2 }, resultVideo: "2030-b.mp4", resultTitle: "결과: 바람의 힘", resultText: "건설 비용은 비쌌지만,<br>바닷바람이 깨끗한 에너지를 만들어내기 시작했습니다." }
+        { text: "빠르고 값싸게 화력 발전소 증설", effects: { economy: -200, nature: -30, pollution: +25 }, resultVideo: "2030-a.mp4", concept: "미세먼지와 매연은 공기를 더럽히고 기후를 바꾸어 생물에게 영향을 줘요.", resultTitle: "결과: 편리함 뒤의 미세먼지", resultText: "전기 공급은 안정되었지만,<br>화력 발전소의 미세먼지 때문에 주민들의 건강이 위협받기 시작했습니다." },
+        { text: "바다에 해상 풍력 발전소 건설", effects: { economy: -500, nature: -5, pollution: +2 }, resultVideo: "2030-b.mp4", concept: "바람으로 전기를 만들면 공기를 덜 더럽히지만, 바다 생물과 새가 사는 곳도 함께 살펴야 해요.", resultTitle: "결과: 바람의 힘", resultText: "건설 비용은 비쌌지만,<br>바닷바람이 깨끗한 에너지를 만들어내기 시작했습니다." }
       ]
     },
     {
@@ -300,8 +331,8 @@
       description: "마지막 해입니다. 그린 플래닛의 미래를 위해 어떤 투자를 할까요?",
       image: "2031-0.mp4",
       choices: [
-        { text: "전국 최대 규모의 쇼핑몰 유치", effects: { economy: +500, nature: -15, pollution: +10 }, resultVideo: "2031-a.mp4", resultTitle: "결과: 화려한 마무리", resultText: "거대한 쇼핑몰은 그린 플래닛의 상징이 되었지만,<br>엄청난 교통량과 쓰레기를 남겼습니다." },
-        { text: "환경 기술을 연구하는 국립 생태 연구원 설립", effects: { economy: -300, nature: +30, pollution: -10 }, resultVideo: "2031-b.mp4", resultTitle: "결과: 미래를 위한 씨앗", resultText: "생태 연구원은 다음 세대를 위한 소중한 유산이 되었습니다.<br>이곳에서 개발된 기술이 그린 플래닛을 더욱 푸르게 만들 것입니다." }
+        { text: "전국 최대 규모의 쇼핑몰 유치", effects: { economy: +500, nature: -15, pollution: +10 }, resultVideo: "2031-a.mp4", concept: "사람과 차가 많이 모이면 쓰레기와 매연이 늘어 주변 생물이 살기 어려워져요.", resultTitle: "결과: 화려한 마무리", resultText: "거대한 쇼핑몰은 그린 플래닛의 상징이 되었지만,<br>엄청난 교통량과 쓰레기를 남겼습니다." },
+        { text: "환경 기술을 연구하는 국립 생태 연구원 설립", effects: { economy: -300, nature: +30, pollution: -10 }, resultVideo: "2031-b.mp4", concept: "생태계를 연구하고 보전하는 노력은 사람과 생물이 함께 사는 미래를 만들어요.", resultTitle: "결과: 미래를 위한 씨앗", resultText: "생태 연구원은 다음 세대를 위한 소중한 유산이 되었습니다.<br>이곳에서 개발된 기술이 그린 플래닛을 더욱 푸르게 만들 것입니다." }
       ]
     }
   ];
@@ -310,15 +341,19 @@
   const ENDINGS = [
     { test: (s) => s.pollution >= 60, title: "회색빛 미래",
       text: "무분별한 개발로 그린 플래닛은 공기도 물도 뿌연 회색 도시가 되었습니다.<br>2050년에서 온 메시지는 바뀌지 않았습니다...",
+      reply: "신호가 약하다... 이곳의 하늘은 여전히 회색이다.<br>하지만 아직 늦지 않았다.<br>다시 한번 그린 플래닛의 미래를 바꿔 주길 바란다.",
       media: "ending-gray.mp4" },
     { test: (s) => s.nature >= 90, title: "환경 중심의 미래",
       text: "{name}의 선택으로 그린 플래닛은 자연과 공존하는 깨끗한 곳이 되었습니다.<br>다만 살림은 넉넉하지 않아 앞으로의 과제도 남았습니다.",
+      reply: "놀라운 일이 일어났다!<br>캠프 주변에 다시 숲이 자라고 새들이 돌아왔다.<br>살림은 넉넉하지 않지만 모두가 힘을 모으고 있다.<br>고맙다, {name}.",
       media: "ending-nature.mp4" },
     { test: (s) => s.economy >= 1500, title: "경제 중심의 미래",
       text: "{name}의 선택으로 그린 플래닛은 눈부신 경제 성장을 이뤘지만,<br>숲과 강은 많이 줄어들었습니다. 미래는 화려하지만 위태로워 보입니다.",
+      reply: "캠프에 높은 건물과 편리한 기계가 생겼다.<br>하지만 숲과 강이 줄어 많은 생물이 사라졌다.<br>다음에는 자연도 함께 지켜 주길 바란다, {name}.",
       media: "ending-economy.mp4" },
     { test: () => true, title: "균형 발전의 미래",
       text: "{name}은 환경과 경제 사이에서 균형을 잡으려 노력했습니다.<br>그린 플래닛은 가능성과 과제를 함께 안은 곳이 되었습니다.",
+      reply: "캠프의 하늘이 조금씩 맑아지고 있다.<br>사람들은 일하고, 숲에는 생물이 돌아오기 시작했다.<br>너희의 선택이 미래를 바꾸었다.<br>고맙다, {name}.",
       media: "ending-balance.mp4" },
   ];
 
@@ -373,6 +408,7 @@
   }
 
   function setScene(title, desc, media) {
+    $('game-content').classList.remove('previewing');
     $('scenario-title').textContent = title;
     $('scenario-description').innerHTML = desc;
     updateMedia(media);
@@ -442,7 +478,7 @@
   /* ========================= 도입 ========================= */
   function startScene() {
     clearTimeout(popupTimer); $('game-content').onclick = null;
-    gameState = { ...START_STATE };
+    gameState = { ...START_STATE, history: [] };
     $('stats-bar').style.display = 'none';
     setScene('2026년 11월 2일 그린 401 교실',
       "갑자기 화면에 의문의 메시지가 날아왔다.",
@@ -560,7 +596,10 @@
   /* ========================= 상황 ========================= */
   function showYearTransition(year) {
     showModal('', `<span class="year-popup-text num">${year}년</span>`, [], 'year-content');
-    setTimeout(() => { hideModal(); renderScenario(); }, 3000);
+    setTimeout(() => {
+      hideModal(); renderScenario();
+      if (pendingToast) { const msg = pendingToast; pendingToast = ''; setTimeout(() => showToast(msg), 300); }
+    }, 3000);
   }
 
   function renderScenario() {
@@ -609,15 +648,20 @@
     pv.className = 'preview';
     pv.appendChild(makeVideo(ch.resultVideo));
     pv.insertAdjacentHTML('beforeend', `<span class="badge">에코렌즈</span><button class="close">닫기</button>`);
-    pv.querySelector('.close').onclick = () => { pv.remove(); setLensBtn(card, 'seen'); };
+    pv.querySelector('.close').onclick = () => { pv.remove(); setLensBtn(card, 'seen'); syncPreviewing(); };
     card.appendChild(pv);
+    syncPreviewing();
     setLensBtn(card, 'viewing');
+  }
+
+  function syncPreviewing() {
+    $('game-content').classList.toggle('previewing', !!document.querySelector('#choices .preview'));
   }
 
   function confirmChoice(ch, L) {
     showModal(`${agent()}님,<br>이 선택이 맞으십니까?`, `<p class="confirm-text">${L}. ${ch.text}</p>`, [
       { text: '취소', className: 'btn-ghost', onclick: hideModal },
-      { text: '결정', onclick: () => { hideModal(); handleChoice(ch); } },
+      { text: '결정', onclick: () => { hideModal(); gameState.history.push({ year: gameState.year, L, text: ch.text }); handleChoice(ch); } },
     ], 'confirm-content');
   }
 
@@ -631,7 +675,7 @@
   }
 
   function showResult(choice) {
-    setScene(choice.resultTitle, choice.resultText, choice.resultVideo);
+    setScene(choice.resultTitle, choice.resultText + `<br><span class="concept"><b>UNI</b>${choice.concept}</span>`, choice.resultVideo);
     const last = gameState.year === START_YEAR + scenarios.length - 1;
     setButtons([{ text: `${gameState.year}년 결과`, className: 'next-year', onclick: () => showYearlySummary(last) }]);
   }
@@ -657,7 +701,7 @@
         if (a !== b) el.classList.toggle('moving', k > 0 && k < 1);
       });
       if (k < 1) requestAnimationFrame(step);
-      else updateUI();
+      else { updateUI(); document.querySelectorAll('#modal-buttons button.wait').forEach((x) => x.classList.remove('wait')); }
     };
     requestAnimationFrame(step);
   }
@@ -671,15 +715,27 @@
     </div>`;
     showModal(`${s.year}년 결과`, html, [{
       text: last ? '최종 결과 확인' : '다음 해로',
-      className: last ? 'action-button-red' : 'next-year-button',
+      className: (last ? 'action-button-red' : 'next-year-button') + ' wait',
       onclick: () => { hideModal(); last ? showEndGame() : proceedToNextYear(); },
     }]);
     animateSummary();
   }
 
+  let pendingToast = '';
+  function showToast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
   function proceedToNextYear() {
+    const p0 = gameState.pollution;
     gameState.economy += 200;                                // 해마다 기본 수입
     gameState.pollution = Math.max(0, gameState.pollution - 2); // 자연 정화
+    const dp = gameState.pollution - p0;
+    pendingToast = '새해 기본 변화  경제 +200' + (dp ? `  ·  오염 ${fmt(dp)} (자연 정화)` : '');
     gameState.year++;
     clampState();
     updateUI();
@@ -696,8 +752,19 @@
       end.media);
     setButtons([
       { text: '게임 후기 남기기', className: 'action-button-red', onclick: () => window.open(MENTI_URL, '_blank') },
+      { text: '나의 선택 기록', className: 'next-year', onclick: showHistory },
       { text: '처음부터 다시하기', className: 'sub-button', onclick: startScene },
     ]);
+    // 영상을 먼저 보여 주고 생존자 캠프의 답장
+    afterVideo(() => typeWriter('<<2050년 생존자 캠프 답장>>', withName(end.reply),
+      { buttonText: '나의 선택 기록', action: showHistory }), 3500);
+  }
+
+  function showHistory() {
+    const rows = gameState.history.map((h) =>
+      `<li><span class="y num">${h.year}</span><span class="ab">${h.L}</span><span>${h.text}</span></li>`).join('');
+    showModal(`${agent()}의 선택 기록`, `<ul class="history">${rows}</ul>`,
+      [{ text: '닫기', className: 'next-year-button', onclick: hideModal }]);
   }
 
   /* ========================= 시작 ========================= */
