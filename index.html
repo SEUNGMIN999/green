@@ -159,6 +159,18 @@
   .dual-sum .summary { display: flex; margin-top: 0.5rem; }
   #modal-content.wide-content { max-width: 46rem; }
 
+  /* 배경음악 버튼 (교사용) */
+  .music-btn {
+    position: fixed; top: 0.7rem; right: 0.7rem; z-index: 20; display: none; align-items: center; gap: 0.35rem;
+    background: rgba(255,255,255,0.92); color: #2e7d32; border: 2px solid #a5d6a7; border-radius: 2rem;
+    padding: 0.35rem 0.8rem 0.35rem 0.6rem; font-size: 0.95rem; cursor: pointer; box-shadow: 0 0.2rem 0.6rem rgba(0,0,0,0.12);
+  }
+  body.teacher-mode .music-btn { display: flex; }
+  .music-btn svg { width: 1.2rem; height: 1.2rem; }
+  .music-btn .slash { display: none; }
+  .music-btn.off { color: #90a4ae; border-color: #cfd8dc; }
+  .music-btn.off .slash { display: inline; }
+
   /* UNI 과학 개념 */
   .concept {
     display: inline-block; margin-top: 0.5rem; padding: 0.45rem 0.95rem;
@@ -340,6 +352,10 @@
 
 <div id="game-container">
   <div id="toast" class="num"></div>
+  <button id="music-btn" class="music-btn on" onclick="toggleMusic()" aria-label="배경음악">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="slash" d="M3 3l18 18"/></svg>
+    <span id="music-label">음악 켬</span>
+  </button>
   <h1 id="header">[작전명: 2050 그린 플래닛]</h1>
 
   <div id="stats-bar">
@@ -508,6 +524,63 @@
       media: "ending-balance.mp4" },
   ];
 
+  /* ========================= 소리 ========================= */
+  // 배경음악 (교사용만): media 폴더의 bgm.mp3 한 곡을 처음부터 끝까지 반복
+  const BGM_VOLUME = 0.25;
+  let musicOn = true, bgmName = '', bgm = null;
+  function setBgm(name) {
+    if (MODE !== 'teacher') name = '';
+    if (name === bgmName) return;
+    bgmName = name;
+    const old = bgm;
+    if (old) fadeAudio(old, 0, () => old.pause());
+    bgm = null;
+    if (!name) return;
+    const a = new Audio(MEDIA_BASE + 'bgm.mp3');
+    a.loop = true; a.volume = 0;
+    bgm = a;
+    if (musicOn) a.play().then(() => fadeAudio(a, BGM_VOLUME)).catch(() => {});
+  }
+  function fadeAudio(a, to, done) {
+    clearInterval(a._fade);
+    a._fade = setInterval(() => {
+      const v = a.volume + (to > a.volume ? 0.02 : -0.02);
+      if ((to > a.volume && v >= to) || (to <= a.volume && v <= to)) { a.volume = to; clearInterval(a._fade); if (done) done(); }
+      else a.volume = Math.max(0, Math.min(1, v));
+    }, 40);
+  }
+  function toggleMusic() {
+    musicOn = !musicOn;
+    $('music-btn').classList.toggle('on', musicOn);
+    $('music-btn').classList.toggle('off', !musicOn);
+    $('music-label').textContent = musicOn ? '음악 켬' : '음악 끔';
+    if (!bgm) return;
+    if (musicOn) bgm.play().then(() => fadeAudio(bgm, BGM_VOLUME)).catch(() => {});
+    else { const a = bgm; fadeAudio(a, 0, () => a.pause()); }
+  }
+
+  // 타자 효과음 (교사용·학생용): 파일 없이 짧은 전자음
+  let audioCtx = null;
+  function unlockAudio() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) {}
+  }
+  document.addEventListener('pointerdown', unlockAudio, { passive: true });
+  document.addEventListener('keydown', unlockAudio);
+  function typeTick() {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'square';
+    o.frequency.value = 1400 + Math.random() * 500;
+    g.gain.setValueAtTime(0.035, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t); o.stop(t + 0.035);
+  }
+
   /* ========================= 공통 ========================= */
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => (n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '0');
@@ -585,7 +658,9 @@
     });
   }
 
+  let twTimer = null; // 타자 효과 타이머 (다른 팝업이 뜨면 멈춤)
   function showModal(title, html, buttons, contentClass = '') {
+    clearTimeout(twTimer);
     const mc = $('modal-content');
     mc.className = contentClass;
     $('modal-title').innerHTML = title;
@@ -603,7 +678,7 @@
     $('modal').classList.toggle('dark', contentClass === 'year-content');
     $('modal').style.display = 'flex';
   }
-  function hideModal() { $('modal').style.display = 'none'; $('modal-content').onclick = null; }
+  function hideModal() { clearTimeout(twTimer); $('modal').style.display = 'none'; $('modal-content').onclick = null; }
 
   // 타자 효과 — 화면을 누르면 문장이 바로 끝까지 나옴
   // 타자 효과 — 문장이 길면 '||'로 나눠 '다음'을 누르면 이어서 나옴, 화면을 누르면 바로 끝까지
@@ -634,8 +709,8 @@
     const type = () => {
       if (i >= cur.length) return finish();
       if (cur.startsWith('<br>', i)) { el.innerHTML += '<br>'; i += 4; }
-      else { el.innerHTML += cur.charAt(i); i++; }
-      timer = setTimeout(type, TYPE_SPEED);
+      else { const ch = cur.charAt(i); el.innerHTML += ch; i++; if (ch.trim()) typeTick(); }
+      timer = twTimer = setTimeout(type, TYPE_SPEED);
     };
     mc.onclick = () => { if (!done) finish(); };
     type();
@@ -645,14 +720,18 @@
   // 맨 처음: 게임 타이틀
   function startScene() {
     clearTimeout(popupTimer); $('game-content').onclick = null;
+    hideModal();
     gameState = { ...START_STATE, history: [] };
     dual = null;
     MODE = 'student';
     $('game-container').classList.remove('teacher');
+    document.body.classList.remove('teacher-mode');
+    setBgm('');
     titleScene();
   }
 
   function messageScene() {
+    setBgm('main');
     $('stats-bar').style.display = 'none';
     setScene('2026년 11월 2일 그린 401 교실',
       "갑자기 화면에 의문의 메시지가 날아왔다.",
@@ -720,7 +799,7 @@
   }
   function checkTeacherPw() {
     const input = $('teacher-pw');
-    if (input.value === TEACHER_PW) { hideModal(); MODE = 'teacher'; $('game-container').classList.add('teacher'); messageScene(); return; }
+    if (input.value === TEACHER_PW) { hideModal(); MODE = 'teacher'; $('game-container').classList.add('teacher'); document.body.classList.add('teacher-mode'); messageScene(); return; }
     $('pw-msg').textContent = '비밀번호 오류';
     input.value = '';
     input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake');
