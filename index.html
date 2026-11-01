@@ -10,6 +10,7 @@
   /* 화면이 크면 글씨와 화면 전체가 함께 커짐 (기준 1280×800 = 16px) */
   html { font-size: clamp(16px, min(1.25vw, 2vh), 28px); }
   * { box-sizing: border-box; }
+  html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow-x: hidden; }
   body {
     font-family: 'Jua', sans-serif;
     background: #e8f5e9;
@@ -64,14 +65,16 @@
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   /* UNI 안내: 말풍선 + 핵심 카드 */
-  #game-content.guide #media-container video { max-height: 32vh; }
+  /* 선택지 카드가 있는 화면은 영상을 조금 작게 */
+  #main:has(#choices.cards) #media-container > video { width: min(100%, 48rem, calc(40vh * 16 / 9)); }
+  #game-content.guide #media-container video { width: min(100%, 48rem, calc(32vh * 16 / 9)); }
   .uni-say {
     display: inline-flex; align-items: center; gap: 0.6rem; margin-top: 0.1rem;
     background: #e1f5fe; color: #01579b; font-size: 1.15rem; line-height: 1.45;
     padding: 0.55rem 1.1rem; border-radius: 1.2rem 1.2rem 1.2rem 0.3rem; text-align: left;
   }
   .uni-say b { flex: none; background: #0288d1; color: #fff; border-radius: 0.6rem; padding: 0.05rem 0.55rem; font-size: 0.9rem; }
-  .guide-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin-top: 0.7rem; }
+  .guide-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; margin-top: 0.7rem; }
   .gcard {
     background: #f8fbf8; border: 2px solid #dcebdd; border-radius: 1rem; padding: 0.7rem 0.8rem;
     display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
@@ -86,7 +89,31 @@
   /* 게임 타이틀 */
   #media-container { position: relative; }
   #game-container.title-mode #header, #game-container.title-mode #scenario-title { display: none; }
-  #game-container.title-mode #media-container video { max-height: 62vh; max-width: 60rem; background: #0b1a14; }
+  /* 타이틀: 어떤 화면에서든 영상이 화면 전체를 가득 채움 */
+  #game-container.title-mode {
+    position: fixed; inset: 0; z-index: 1; max-width: none; border-radius: 0; padding: 0;
+    background: #0b1a14; box-shadow: none; overflow: hidden;
+  }
+  #game-container.title-mode #main, #game-container.title-mode #game-content { position: absolute; inset: 0; gap: 0; }
+  #game-container.title-mode #scenario-description { display: none; }
+  #game-container.title-mode #media-container { position: absolute; inset: 0; }
+  #game-container.title-mode #media-container video {
+    width: 100%; height: 100%; max-width: none; max-height: none; aspect-ratio: auto;
+    object-fit: cover; border-radius: 0; background: #0b1a14;
+  }
+  #game-container.title-mode .title-overlay .op { font-size: min(3.2vh, 4.6vw); }
+  #game-container.title-mode .title-overlay .yr { font-size: min(17vh, 23vw); }
+  #game-container.title-mode .title-overlay .nm { font-size: min(9vh, 11.5vw); white-space: nowrap; }
+  #game-container.title-mode #choices {
+    position: absolute; left: 50%; bottom: 7vh; transform: translateX(-50%); z-index: 2;
+    width: min(90vw, 28rem); animation: fadeUp 0.8s ease-out 1.6s both;
+  }
+  #game-container.title-mode #choices .sub-button {
+    background: rgba(255,255,255,0.14) !important; color: #eafff2 !important;
+    border: 2px solid rgba(160,255,200,0.6) !important; box-shadow: none !important;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translate(-50%, 1rem); } to { opacity: 1; transform: translate(-50%, 0); } }
   .title-overlay {
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
     pointer-events: none; animation: titleIn 1.6s ease-out 0.4s both;
@@ -114,11 +141,11 @@
   }
 
   /* 교사용: 두 미래 비교 */
-  #game-container.teacher #media-container > video { max-height: 33vh; }
+  #game-container.teacher #media-container > video { width: min(100%, 48rem, calc(33vh * 16 / 9)); }
   .compare-btn { grid-column: 1 / -1; justify-self: center; width: 100%; max-width: 28rem; background: #7e57c2 !important; box-shadow: 0 0.25rem 0 #4527a0 !important; }
   .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: left; }
   .pane { background: #f8fbf8; border: 2px solid #dcebdd; border-radius: 1rem; padding: 0.6rem 0.7rem 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
-  #media-container .pane video { width: 100%; max-width: none; max-height: 36vh; margin: 0; border-radius: 0.7rem; }
+  #media-container .pane video { width: min(100%, calc(36vh * 16 / 9)); margin: 0 auto; border-radius: 0.7rem; }
   .pane h3 { font-size: 1.25rem; margin: 0.15rem 0 0; color: #2e7d32; }
   .pane .pt { font-size: 1rem; line-height: 1.5; color: #2980b9; }
   .pane .concept { display: block; margin-top: 0.35rem; font-size: 0.92rem; }
@@ -149,7 +176,8 @@
   #game-content h2 { font-size: 1.45rem; margin: 0 0 0.5rem; }
   #media-container { transition: opacity 0.4s ease-in-out; }
   #media-container video {
-    width: 100%; max-width: 48rem; max-height: 40vh;
+    /* 16:9 비율을 지키며 크기 결정 (위아래 잘림 방지) */
+    width: min(100%, 60rem, calc(50vh * 16 / 9)); max-width: none; max-height: none;
     aspect-ratio: 16 / 9; object-fit: cover;
     border-radius: 1rem; display: block; margin: 0 auto; background: #dcebdd;
   }
@@ -177,7 +205,7 @@
   #choices input[type="text"]:focus { border-color: #4caf50; }
 
   /* 선택지 카드 */
-  #choices.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: stretch; }
+  #choices.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: stretch; }
   .card {
     position: relative; display: flex; flex-direction: column; gap: 0.55rem;
     background: #f8fbf8; border: 2px solid #dcebdd; border-radius: 1rem;
@@ -271,6 +299,41 @@
   /* 결말 */
   .final-stats { display: inline-flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin-top: 0.4rem; }
   .final-stats span { background: #e8f5e9; color: #2e7d32; padding: 0.2rem 0.75rem; border-radius: 0.6rem; font-size: 1.05rem; }
+  /* 세로 화면·좁은 화면 (휴대폰, 세로 태블릿) */
+  @media (max-width: 760px) {
+    body { padding: 0.5rem; align-items: flex-start; }
+    #game-container { padding: 0.7rem 0.75rem 0.9rem; border-radius: 1rem; }
+    #header { font-size: 1.15rem; margin-bottom: 0.4rem; }
+    #game-content h2 { font-size: 1.25rem; }
+    #scenario-description { font-size: 1.05rem; }
+    #stats-bar { gap: 0.35rem; }
+    .chip { font-size: 0.9rem; padding: 0.3rem 0.6rem; gap: 0.3rem; }
+    .chip.year { font-size: 1rem; }
+    .bar { width: 2.6rem; }
+    .chip .v { min-width: 2.1rem; }
+    .glass { width: 1.3rem; height: 0.65rem; }
+    /* 선택지 카드 한 줄에 하나 */
+    #choices.cards { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+    .card { padding: 0.6rem 0.7rem 0.75rem; }
+    .card .opt { font-size: 1.05rem; }
+    .card .row .btn { font-size: 1rem; padding: 0.7rem 0.4rem; }
+    .preview { width: min(96%, 20rem); }
+    /* 안내 카드: 아이콘 왼쪽, 글 오른쪽으로 작게 */
+    .uni-say { font-size: 1rem; padding: 0.5rem 0.8rem; }
+    .guide-cards { grid-template-columns: minmax(0, 1fr); gap: 0.45rem; margin-top: 0.55rem; }
+    .gcard { flex-direction: row; align-items: center; text-align: left; gap: 0.7rem; padding: 0.5rem 0.75rem; }
+    .gcard svg { width: 1.6rem; height: 1.6rem; flex: none; }
+    .gcard .gt { font-size: 1.05rem; flex: none; min-width: 6.5rem; }
+    .gcard .gd { font-size: 0.92rem; }
+    .gcard .gd br { display: none; }
+    /* 팝업 */
+    #modal { padding: 0.6rem; }
+    #modal-content { width: 100%; padding: 1.2rem 1rem; font-size: 1.05rem; }
+    #modal-content h2 { font-size: 1.35rem; }
+    .split, .dual-sum { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+    .history li { font-size: 1rem; }
+  }
+
 </style>
 </head>
 <body>
@@ -543,26 +606,35 @@
   function hideModal() { $('modal').style.display = 'none'; $('modal-content').onclick = null; }
 
   // 타자 효과 — 화면을 누르면 문장이 바로 끝까지 나옴
+  // 타자 효과 — 문장이 길면 '||'로 나눠 '다음'을 누르면 이어서 나옴, 화면을 누르면 바로 끝까지
   function typeWriter(title, text, nextStep) {
     showModal(title, '', [], 'hologram-content');
     const el = $('modal-text');
     const mc = $('modal-content');
-    let i = 0, done = false, timer = null;
+    const mb = $('modal-buttons');
+    const pages = text.split('||');
+    let pg = 0, i = 0, done = false, timer = null, cur = pages[0];
     const finish = () => {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      el.innerHTML = text;
+      el.innerHTML = cur;
+      const last = pg === pages.length - 1;
       const btn = document.createElement('button');
-      btn.textContent = nextStep.buttonText;
-      btn.className = 'action-button-red';
-      btn.onclick = (e) => { e.stopPropagation(); hideModal(); nextStep.action(); };
-      $('modal-buttons').appendChild(btn);
+      btn.textContent = last ? nextStep.buttonText : '다음';
+      btn.className = last ? 'action-button-red' : 'next-year-button';
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        if (last) { hideModal(); nextStep.action(); return; }
+        pg++; cur = pages[pg]; i = 0; done = false; el.innerHTML = ''; mb.innerHTML = '';
+        type();
+      };
+      mb.appendChild(btn);
     };
     const type = () => {
-      if (i >= text.length) return finish();
-      if (text.startsWith('<br>', i)) { el.innerHTML += '<br>'; i += 4; }
-      else { el.innerHTML += text.charAt(i); i++; }
+      if (i >= cur.length) return finish();
+      if (cur.startsWith('<br>', i)) { el.innerHTML += '<br>'; i += 4; }
+      else { el.innerHTML += cur.charAt(i); i++; }
       timer = setTimeout(type, TYPE_SPEED);
     };
     mc.onclick = () => { if (!done) finish(); };
@@ -666,7 +738,7 @@
     setButtons([]);
     afterVideo(() => typeWriter(
       "<<긴급 메시지 수신>>",
-      "여기는 2050년, 생존자 캠프다.<br>과거의 무분별한 개발로 지구 생태계는 회복하기 어려운 상태에 빠졌다.<br>우리는 타임머신이 '그린'이라는 이름을 찾아가도록 만들었다.<br>그래서 이름에 '그린'이 들어간 너희 반, 그린 401에 도착한 것이다.<br>미래 기술을 담은 에코렌즈를 함께 보낸다.<br>작전명은 '2050 그린 플래닛'.<br>너희의 선택으로 2050년의 미래를 바꿔 주길 바란다.",
+      "여기는 2050년, 생존자 캠프다.<br>과거의 무분별한 개발로 지구 생태계는 회복하기 어려운 상태에 빠졌다.||우리는 타임머신이 '그린'이라는 이름을 찾아가도록 만들었다.<br>그래서 이름에 '그린'이 들어간 너희 반, 그린 401에 도착한 것이다.||미래 기술을 담은 에코렌즈를 함께 보낸다.<br>작전명은 '2050 그린 플래닛'.<br>너희의 선택으로 2050년의 미래를 바꿔 주길 바란다.",
       { buttonText: '에코렌즈 UNI 활성화', action: uniGuide }
     ));
   }
@@ -676,7 +748,7 @@
     setButtons([]);
     afterVideo(() => typeWriter(
       "AI 가이드 'UNI' 활성화",
-      "반갑습니다, 그린 401 대원님.<br>저는 선택을 함께할 AI 가이드 UNI입니다.<br>지금부터 '작전명: 2050 그린 플래닛'을 시작합니다.<br>대원님은 그린 플래닛의 관리자가 되어<br>2050년의 미래를 바꾸는 선택을 하게 됩니다.<br>먼저 대원님의 이름을 등록해 주세요.",
+      "반갑습니다, 그린 401 대원님.<br>저는 선택을 함께할 AI 가이드 UNI입니다.||지금부터 '작전명: 2050 그린 플래닛'을 시작합니다.<br>대원님은 그린 플래닛의 관리자가 되어<br>2050년의 미래를 바꾸는 선택을 하게 됩니다.<br>먼저 대원님의 이름을 등록해 주세요.",
       { buttonText: '이름 등록', action: nameScene }
     ), 2500);
   }
@@ -712,7 +784,7 @@
   };
   function guideHTML(say, cards, cls = '') {
     return `<div class="uni-say"><b>UNI</b><span>${say}</span></div>
-      <div class="guide-cards">${cards.map((c) => `<div class="gcard ${cls}">${ICON[c[0]]}<div class="gt">${c[1]}</div><div class="gd">${c[2]}</div></div>`).join('')}</div>`;
+      <div class="guide-cards">${cards.map((c) => `<div class="gcard ${cls}">${ICON[c[0]]}<div class="gt">${c[1]}</div><div class="gd">${c[2].replace(/<br>/g, ' <br>')}</div></div>`).join('')}</div>`;
   }
 
   function howToScene() {
