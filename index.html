@@ -113,6 +113,25 @@
     100% { opacity: 1; transform: scale(1); }
   }
 
+  /* 교사용: 두 미래 비교 */
+  #game-container.teacher #media-container > video { max-height: 33vh; }
+  .compare-btn { grid-column: 1 / -1; justify-self: center; width: 100%; max-width: 28rem; background: #7e57c2 !important; box-shadow: 0 0.25rem 0 #4527a0 !important; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: left; }
+  .pane { background: #f8fbf8; border: 2px solid #dcebdd; border-radius: 1rem; padding: 0.6rem 0.7rem 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  #media-container .pane video { width: 100%; max-width: none; max-height: 36vh; margin: 0; border-radius: 0.7rem; }
+  .pane h3 { font-size: 1.25rem; margin: 0.15rem 0 0; color: #2e7d32; }
+  .pane .pt { font-size: 1rem; line-height: 1.5; color: #2980b9; }
+  .pane .concept { display: block; margin-top: 0.35rem; font-size: 0.92rem; }
+  .pane .final-stats { margin-top: 0.3rem; }
+  .tag { display: inline-block; align-self: flex-start; color: #fff; border-radius: 0.6rem; padding: 0.05rem 0.65rem; font-size: 0.95rem; }
+  .tag.A { background: #5c6bc0; }
+  .tag.B { background: #00897b; }
+  .chip.dual { gap: 0.4rem; }
+  .chip.dual .v { margin-right: 0.45rem; color: #37474f; }
+  .dual-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .dual-sum .summary { display: flex; margin-top: 0.5rem; }
+  #modal-content.wide-content { max-width: 46rem; }
+
   /* UNI 과학 개념 */
   .concept {
     display: inline-block; margin-top: 0.5rem; padding: 0.45rem 0.95rem;
@@ -222,6 +241,15 @@
   @keyframes fadeInOut { 0% { opacity: 0; transform: scale(0.9); } 25%, 75% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0; transform: scale(0.9); } }
 
   #modal-buttons button { display: block; width: 100%; max-width: 28rem; margin: 0.9rem auto 0; }
+  .pw-input {
+    width: 100%; max-width: 16rem; padding: 0.7rem; margin: 0.2rem auto 0; display: block;
+    border: 2px solid #a5d6a7; border-radius: 0.8rem; font-size: 1.4rem; text-align: center; letter-spacing: 0.4em; color: #2e7d32;
+    font-family: 'Jua', sans-serif;
+  }
+  .pw-input:focus { border-color: #4caf50; }
+  .pw-msg { min-height: 1.4rem; margin-top: 0.4rem; color: #e53935; font-size: 1rem; }
+  .shake { animation: shake 0.4s; }
+  @keyframes shake { 20%, 60% { transform: translateX(-0.5rem); } 40%, 80% { transform: translateX(0.5rem); } }
   #modal-buttons.row { display: flex; justify-content: center; gap: 0.75rem; }
   #modal-buttons.row button { width: auto; min-width: 7.5rem; margin: 0.9rem 0 0; }
 
@@ -253,10 +281,13 @@
 
   <div id="stats-bar">
     <span id="year-stat" class="chip year num"></span>
+    <span id="stats-single" style="display:contents">
     <div class="chip"><svg class="ic" viewBox="0 0 24 24" fill="#ffb300"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6" fill="none" stroke="#fff3c4" stroke-width="2"/></svg>경제<span class="bar"><i id="bar-economy" style="background:#ffb300"></i></span><span id="economy" class="v num"></span></div>
     <div class="chip"><svg class="ic" viewBox="0 0 24 24" fill="#43a047"><path d="M20 3C10 3 4 9 4 16c0 1.6.4 3 1 4 1-4 4-8 9-10-4 3-6.5 6.5-7.5 10.5C8 21 9.5 21 11 21c7 0 10-7 9-18z"/></svg>자연<span class="bar"><i id="bar-nature" style="background:#43a047"></i></span><span id="nature" class="v num"></span></div>
     <div class="chip"><svg class="ic" viewBox="0 0 24 24" fill="#78909c"><path d="M7 19a5 5 0 0 1-.6-10A6.5 6.5 0 0 1 19 9.5 4.8 4.8 0 0 1 18 19z"/></svg>오염<span class="bar"><i id="bar-pollution" style="background:#78909c"></i></span><span id="pollution" class="v num"></span></div>
     <div class="chip lens">에코렌즈<span id="lens-icons" class="lens-icons"></span></div>
+    </span>
+    <span id="stats-dual" style="display:none"></span>
   </div>
 
   <div id="main">
@@ -284,10 +315,13 @@
        QR로 들어온 학생은 바로 메시지 활성화 장면부터 시작
      ========================================================= */
   const QR_CODE = 'green401';
-  /* 교사용 / 학생용
-     - 학생용(기본, QR 주소 포함): 태블릿 문자 메시지 → 게임 타이틀 → 에코렌즈 작동 → …
-     - 교사용(주소 뒤에 ?mode=teacher): 문자 메시지 → 붙박이장 빛 → 타임캡슐 → 에코렌즈 착용 → 게임 타이틀 → … */
+  /* 교사용 / 학생용 (게임 타이틀에서 고름)
+     - 학생용 '게임 시작하기': 긴급 메시지 → UNI 활성화 → 이름 → 안내 → 임무 시작
+     - 교사용 (비밀번호): 문자 메시지 → 붙박이장 빛 → 타임캡슐 → 반응 없는 안경 → QR 인식 → 긴급 메시지 → … */
+  const TEACHER_PW = '2050';
   let MODE = 'student';
+  // 교사용 '결과 한번에 보기': A길(계속 A 선택) / B길(계속 B 선택) 두 미래를 따로 계산
+  let dual = null;
   const START_YEAR = 2026;
   const MENTI_URL = 'https://www.menti.com/alrpz4rjtgdm';
   const TYPE_SPEED = 35; // 글자당 ms
@@ -437,6 +471,10 @@
     $('bar-nature').style.width = pct(gameState.nature, 120);
     $('bar-pollution').style.width = pct(gameState.pollution, 100);
     $('lens-icons').innerHTML = [0, 1, 2].map((i) => GLASS(i < gameState.ecoLensUses ? '' : 'used')).join('');
+    $('stats-single').style.display = dual ? 'none' : 'contents';
+    $('stats-dual').style.display = dual ? 'contents' : 'none';
+    if (dual) $('stats-dual').innerHTML = ['A', 'B'].map((k) => `<div class="chip dual"><b class="tag ${k}">${k}길</b>`
+      + `경제 <span class="v num">${dual[k].economy}</span>자연 <span class="v num">${dual[k].nature}</span>오염 <span class="v num">${dual[k].pollution}</span></div>`).join('');
   }
 
   // 영상: MEDIA_BASE 폴더의 파일 → 없으면 FALLBACK 주소
@@ -532,9 +570,17 @@
   }
 
   /* ========================= 도입 ========================= */
+  // 맨 처음: 게임 타이틀
   function startScene() {
     clearTimeout(popupTimer); $('game-content').onclick = null;
     gameState = { ...START_STATE, history: [] };
+    dual = null;
+    MODE = 'student';
+    $('game-container').classList.remove('teacher');
+    titleScene();
+  }
+
+  function messageScene() {
     $('stats-bar').style.display = 'none';
     setScene('2026년 11월 2일 그린 401 교실',
       "갑자기 화면에 의문의 메시지가 날아왔다.",
@@ -545,9 +591,7 @@
   function openMessage() {
     typeWriter('의문의 메시지',
       "왼쪽 문 앞 붙박이장 안에 있는<br>나를 찾아주세요.",
-      MODE === 'teacher'
-        ? { buttonText: '붙박이장 확인', action: classroomScene }
-        : { buttonText: '타임캡슐 발견', action: titleScene });
+      { buttonText: '붙박이장 확인', action: classroomScene });
   }
 
   function classroomScene() {
@@ -559,9 +603,16 @@
 
   function capsuleScene() {
     setScene('붙박이장 안의 타임캡슐',
-      "붙박이장 안에 미래에서 전송된 타임캡슐이 놓여 있다.<br>캡슐을 열어 보니 미래에서 온 에코렌즈가 들어 있다.",
+      "붙박이장 안에 미래에서 전송된 타임캡슐이 놓여 있다.<br>캡슐을 열어 보니 안경들이 들어 있다.",
       'intro-2-capsule.mp4');
-    setButtons([{ text: '에코렌즈 착용', className: 'action-button-red', onclick: titleScene }]);
+    setButtons([{ text: '안경 써 보기', className: 'action-button-red', onclick: glassesScene }]);
+  }
+
+  function glassesScene() {
+    setScene('반응 없는 안경',
+      "안경을 써도 초록빛만 나올 뿐 아무 반응이 없다.<br>타임캡슐에 붙어 있는 QR 코드를 인식해야 할 것 같다.",
+      'intro-3-glasses.mp4');
+    setButtons([{ text: 'QR 코드 인식', className: 'action-button-red', onclick: qrRecognized }]);
   }
 
   // 영상을 먼저 보여 주고, 잠시 뒤 팝업 (화면을 누르면 바로)
@@ -579,12 +630,34 @@
     setScene('', '', 'title.mp4',
       '<div class="title-overlay"><div class="op">작전명</div><div class="yr num">2050</div><div class="nm">그린 플래닛</div></div>');
     $('game-container').classList.add('title-mode');
-    setButtons([{ text: '임무 시작', className: 'action-button-red', onclick: qrRecognized }]);
+    setButtons([
+      { text: '게임 시작하기', className: 'action-button-red', onclick: () => { MODE = 'student'; emergencyMessage(); } },
+      { text: '교사용', className: 'sub-button', onclick: askTeacherPw },
+    ]);
+  }
+
+  // 교사용 비밀번호
+  function askTeacherPw() {
+    showModal('교사용', `<input type="password" id="teacher-pw" class="pw-input num" inputmode="numeric" maxlength="8" placeholder="비밀번호" autocomplete="off"><div id="pw-msg" class="pw-msg"></div>`, [
+      { text: '취소', className: 'btn-ghost', onclick: hideModal },
+      { text: '확인', onclick: checkTeacherPw },
+    ], 'confirm-content');
+    const input = $('teacher-pw');
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkTeacherPw(); });
+    setTimeout(() => input.focus(), 200);
+  }
+  function checkTeacherPw() {
+    const input = $('teacher-pw');
+    if (input.value === TEACHER_PW) { hideModal(); MODE = 'teacher'; $('game-container').classList.add('teacher'); messageScene(); return; }
+    $('pw-msg').textContent = '비밀번호 오류';
+    input.value = '';
+    input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake');
+    input.focus();
   }
 
   function qrRecognized() {
     $('stats-bar').style.display = 'none';
-    setScene('에코렌즈 작동', "안경에 초록 불빛이 들어오며 메시지가 재생된다.", 'intro-4-name.mp4');
+    setScene('QR 인식 완료', "안경에 초록 불빛이 들어오며 메시지가 재생된다.", 'intro-4-name.mp4');
     setButtons([{ text: '메시지 재생', className: 'action-button-red', onclick: emergencyMessage }]);
   }
 
@@ -663,7 +736,7 @@
         ['lock', '숫자는 비밀', '점수 변화는<br>결정한 뒤에 알 수 있어요'],
       ], 'blue'), 'intro-5-uni.mp4');
     $('game-content').classList.add('guide');
-    setButtons([{ text: '선택 시작', className: 'action-button-red', onclick: startFirstYear }]);
+    setButtons([{ text: '임무 시작', className: 'action-button-red', onclick: startFirstYear }]);
   }
 
   function startFirstYear() {
@@ -701,8 +774,96 @@
       setLensBtn(card, 'ready');
       lensBtn.onclick = () => useEcoLens(card, ch);
       card.querySelector('.pick').onclick = () => confirmChoice(ch, L);
+      if (dual) card.querySelector('.row').style.display = 'none';
       c.appendChild(card);
     });
+    if (MODE === 'teacher') {
+      if (dual) { dual.startA = { ...dual.A }; dual.startB = { ...dual.B }; }
+      const all = document.createElement('button');
+      all.className = 'btn compare-btn';
+      all.textContent = '결과 한번에 보기';
+      all.onclick = showCompare;
+      c.appendChild(all);
+    }
+  }
+
+  /* ========================= 교사용: 결과 한번에 보기 ========================= */
+  const pick3 = (st) => ({ economy: st.economy, nature: st.nature, pollution: st.pollution });
+  function applyEffects(st, e) {
+    st.economy = Math.max(0, st.economy + (e.economy || 0));
+    st.nature = Math.max(0, Math.min(150, st.nature + (e.nature || 0)));
+    st.pollution = Math.max(0, st.pollution + (e.pollution || 0));
+  }
+
+  // 화면을 반으로 나눠 왼쪽·오른쪽 영상
+  function setSplit(title, panes) {
+    $('game-content').classList.remove('previewing', 'guide');
+    $('game-container').classList.remove('title-mode');
+    $('scenario-title').textContent = title;
+    $('scenario-description').innerHTML = '';
+    const mc = $('media-container');
+    mc.style.opacity = 0;
+    setTimeout(() => {
+      mc.innerHTML = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'split';
+      panes.forEach((pn) => {
+        const d = document.createElement('div');
+        d.className = 'pane';
+        d.innerHTML = `<span class="tag ${pn.k}">${pn.k}길</span>`;
+        d.appendChild(makeVideo(pn.video));
+        d.insertAdjacentHTML('beforeend', `<h3>${pn.title}</h3><div class="pt">${pn.text}</div>`);
+        wrap.appendChild(d);
+      });
+      mc.appendChild(wrap);
+      mc.style.opacity = 1;
+    }, 300);
+  }
+
+  function showCompare() {
+    const sc = scenarios[gameState.year - START_YEAR];
+    if (!dual) {
+      dual = { A: pick3(gameState), B: pick3(gameState) };
+      dual.startA = { ...dual.A }; dual.startB = { ...dual.B };
+    }
+    applyEffects(dual.A, sc.choices[0].effects);
+    applyEffects(dual.B, sc.choices[1].effects);
+    setSplit(`${gameState.year}년 결과 한번에 보기`, sc.choices.map((ch, i) => ({
+      k: 'AB'[i], video: ch.resultVideo, title: ch.resultTitle.replace('결과: ', ''),
+      text: `${ch.text}<span class="concept"><b>UNI</b>${ch.concept}</span>`,
+    })));
+    const last = gameState.year === START_YEAR + scenarios.length - 1;
+    setButtons([{ text: `${gameState.year}년 결과`, className: 'next-year', onclick: () => showDualSummary(last) }]);
+  }
+
+  function showDualSummary(last) {
+    const col = (k) => {
+      const now = dual[k], b = dual['start' + k];
+      return `<div><span class="tag ${k}">${k}길</span><div class="summary">
+        ${summaryRow('economy', '경제', now.economy, b.economy, false)}
+        ${summaryRow('nature', '자연', now.nature, b.nature, false)}
+        ${summaryRow('pollution', '오염', now.pollution, b.pollution, true)}
+      </div></div>`;
+    };
+    showModal(`${gameState.year}년 결과`, `<div class="dual-sum">${col('A')}${col('B')}</div>`, [{
+      text: last ? '최종 결과 확인' : '다음 해로',
+      className: (last ? 'action-button-red' : 'next-year-button') + ' wait',
+      onclick: () => { hideModal(); last ? showEndGame() : proceedToNextYear(); },
+    }], 'wide-content');
+    animateSummary();
+  }
+
+  function showDualEnd() {
+    $('stats-bar').style.display = 'none';
+    setSplit('두 미래의 결과', ['A', 'B'].map((k) => {
+      const st = dual[k], end = ENDINGS.find((e) => e.test(st));
+      return { k, video: end.media, title: end.title,
+        text: withName(end.text) + `<br><span class="final-stats"><span class="num">자연 ${st.nature}</span><span class="num">오염 ${st.pollution}</span><span class="num">경제 ${st.economy}</span></span>` };
+    }));
+    setButtons([
+      { text: '게임 후기 남기기', className: 'action-button-red', onclick: () => window.open(MENTI_URL, '_blank') },
+      { text: '처음부터 다시하기', className: 'sub-button', onclick: startScene },
+    ]);
   }
 
   // 에코렌즈 버튼 상태: ready(사용 가능) / viewing(미리보기 중) / seen(다시 보기, 무료) / none(남은 렌즈 없음)
@@ -810,6 +971,7 @@
   }
 
   function proceedToNextYear() {
+    if (dual) ['A', 'B'].forEach((k) => { dual[k].economy += 200; dual[k].pollution = Math.max(0, dual[k].pollution - 2); });
     const p0 = gameState.pollution;
     gameState.economy += 200;                                // 해마다 기본 수입
     gameState.pollution = Math.max(0, gameState.pollution - 2); // 자연 정화
@@ -823,6 +985,7 @@
 
   /* ========================= 결말 ========================= */
   function showEndGame() {
+    if (dual) return showDualEnd();
     const s = gameState;
     const end = ENDINGS.find((e) => e.test(s));
     $('stats-bar').style.display = 'none';
@@ -848,20 +1011,7 @@
 
   /* ========================= 시작 ========================= */
   // QR(?qr=green401)로 들어오면 메시지 활성화부터, 아니면 교실 장면부터
-  // 주소의 ?mode=teacher 로 교사용, 그 밖(QR 주소 포함)은 학생용
-  window.onload = () => {
-    const begin = (param) => {
-      MODE = param && param.mode === 'teacher' ? 'teacher' : 'student';
-      startScene();
-    };
-    try {
-      if (window.google && google.script && google.script.url) {
-        google.script.url.getLocation((loc) => begin(loc && loc.parameter));
-        return;
-      }
-      begin(Object.fromEntries(new URLSearchParams(location.search)));
-    } catch (e) { begin(null); }
-  };
+  window.onload = () => startScene();
 </script>
 
 </body>
