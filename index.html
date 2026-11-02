@@ -8,7 +8,7 @@
   @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
 
   /* 화면이 크면 글씨와 화면 전체가 함께 커짐 (기준 1280×800 = 16px) */
-  html { font-size: clamp(16px, min(1.25vw, 2vh), 28px); }
+  html { font-size: clamp(16px, min(1.4vw, 2.3vh), 30px); }
   * { box-sizing: border-box; }
   html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow-x: hidden; }
   body {
@@ -65,6 +65,8 @@
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   /* UNI 안내: 말풍선 + 핵심 카드 */
+  /* 결과 화면(설명 + UNI 개념)과 결말 화면은 글이 많아 조금 작게 */
+  #game-content:has(.concept) #media-container > video, #game-content:has(.final-stats) #media-container > video { width: min(100%, 64rem, calc(45vh * 16 / 9)); }
   /* 선택지 카드가 있는 화면은 영상을 조금 작게 */
   #main:has(#choices.cards) #media-container > video { width: min(100%, 48rem, calc(40vh * 16 / 9)); }
   #game-content.guide #media-container video { width: min(100%, 48rem, calc(32vh * 16 / 9)); }
@@ -141,7 +143,7 @@
   }
 
   /* 교사용: 두 미래 비교 */
-  #game-container.teacher #media-container > video { width: min(100%, 48rem, calc(33vh * 16 / 9)); }
+  #game-container.teacher #main:has(#choices.cards) #media-container > video { width: min(100%, 48rem, calc(33vh * 16 / 9)); }
   .compare-btn { grid-column: 1 / -1; justify-self: center; width: 100%; max-width: 28rem; background: #7e57c2 !important; box-shadow: 0 0.25rem 0 #4527a0 !important; }
   .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: left; }
   .pane { background: #f8fbf8; border: 2px solid #dcebdd; border-radius: 1rem; padding: 0.6rem 0.7rem 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
@@ -159,16 +161,23 @@
   .dual-sum .summary { display: flex; margin-top: 0.5rem; }
   #modal-content.wide-content { max-width: 46rem; }
 
-  /* 배경음악 버튼 (교사용) */
-  .music-btn {
-    position: fixed; top: 0.7rem; right: 0.7rem; z-index: 20; display: none; align-items: center; gap: 0.35rem;
-    background: rgba(255,255,255,0.92); color: #2e7d32; border: 2px solid #a5d6a7; border-radius: 2rem;
-    padding: 0.35rem 0.8rem 0.35rem 0.6rem; font-size: 0.95rem; cursor: pointer; box-shadow: 0 0.2rem 0.6rem rgba(0,0,0,0.12);
+  /* 배경음악 켜기·끄기 + 음량 (교사용) */
+  .music-ctrl {
+    position: fixed; top: 0.7rem; right: 0.7rem; z-index: 20; display: none; align-items: center; gap: 0.5rem;
+    background: rgba(255,255,255,0.94); border: 2px solid #a5d6a7; border-radius: 2rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.3rem; box-shadow: 0 0.2rem 0.6rem rgba(0,0,0,0.12);
   }
-  body.teacher-mode .music-btn { display: flex; }
+  body.teacher-mode .music-ctrl { display: flex; }
+  .music-btn {
+    display: flex; align-items: center; gap: 0.35rem; background: transparent; border: none;
+    color: #2e7d32; border-radius: 2rem; padding: 0.25rem 0.4rem; font-size: 0.95rem; cursor: pointer;
+  }
+  .music-vol { width: 6.5rem; accent-color: #43a047; cursor: pointer; }
+  .music-vol-num { min-width: 2rem; text-align: right; font-size: 0.9rem; color: #37474f; }
+  .music-ctrl.off .music-vol { accent-color: #b0bec5; }
   .music-btn svg { width: 1.2rem; height: 1.2rem; }
   .music-btn .slash { display: none; }
-  .music-btn.off { color: #90a4ae; border-color: #cfd8dc; }
+  .music-btn.off { color: #90a4ae; }
   .music-btn.off .slash { display: inline; }
 
   /* UNI 과학 개념 */
@@ -189,7 +198,7 @@
   #media-container { transition: opacity 0.4s ease-in-out; }
   #media-container video {
     /* 16:9 비율을 지키며 크기 결정 (위아래 잘림 방지) */
-    width: min(100%, 60rem, calc(50vh * 16 / 9)); max-width: none; max-height: none;
+    width: min(100%, 64rem, calc(58vh * 16 / 9)); max-width: none; max-height: none;
     aspect-ratio: 16 / 9; object-fit: cover;
     border-radius: 1rem; display: block; margin: 0 auto; background: #dcebdd;
   }
@@ -344,6 +353,9 @@
     #modal-content h2 { font-size: 1.35rem; }
     .split, .dual-sum { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
     .history li { font-size: 1rem; }
+    /* 교사용 음악 조절은 화면 위쪽에 따로 자리 */
+    body.teacher-mode { padding-top: 3.4rem; }
+    .music-ctrl { left: 50%; right: auto; transform: translateX(-50%); top: 0.5rem; }
   }
 
 </style>
@@ -352,10 +364,14 @@
 
 <div id="game-container">
   <div id="toast" class="num"></div>
+  <div id="music-ctrl" class="music-ctrl">
   <button id="music-btn" class="music-btn on" onclick="toggleMusic()" aria-label="배경음악">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="slash" d="M3 3l18 18"/></svg>
     <span id="music-label">음악 켬</span>
   </button>
+  <input type="range" id="music-vol" class="music-vol" min="0" max="100" step="5" value="25" aria-label="음량" oninput="setMusicVolume(this.value)">
+  <span id="music-vol-num" class="music-vol-num num">25</span>
+  </div>
   <h1 id="header">[작전명: 2050 그린 플래닛]</h1>
 
   <div id="stats-bar">
@@ -526,7 +542,12 @@
 
   /* ========================= 소리 ========================= */
   // 배경음악 (교사용만): media 폴더의 bgm.mp3 한 곡을 처음부터 끝까지 반복
-  const BGM_VOLUME = 0.25;
+  let BGM_VOLUME = 0.25;
+  function setMusicVolume(v) {
+    BGM_VOLUME = v / 100;
+    $('music-vol-num').textContent = v;
+    if (bgm && musicOn) { clearInterval(bgm._fade); bgm.volume = BGM_VOLUME; }
+  }
   let musicOn = true, bgmName = '', bgm = null;
   function setBgm(name) {
     if (MODE !== 'teacher') name = '';
@@ -553,6 +574,7 @@
     musicOn = !musicOn;
     $('music-btn').classList.toggle('on', musicOn);
     $('music-btn').classList.toggle('off', !musicOn);
+    $('music-ctrl').classList.toggle('off', !musicOn);
     $('music-label').textContent = musicOn ? '음악 켬' : '음악 끔';
     if (!bgm) return;
     if (musicOn) bgm.play().then(() => fadeAudio(bgm, BGM_VOLUME)).catch(() => {});
