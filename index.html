@@ -162,23 +162,33 @@
   #modal-content.wide-content { max-width: 46rem; }
 
   /* 배경음악 켜기·끄기 + 음량 (교사용) */
-  .music-ctrl {
-    position: fixed; top: 0.7rem; right: 0.7rem; z-index: 20; display: none; align-items: center; gap: 0.5rem;
-    background: rgba(255,255,255,0.94); border: 2px solid #a5d6a7; border-radius: 2rem;
-    padding: 0.25rem 0.75rem 0.25rem 0.3rem; box-shadow: 0 0.2rem 0.6rem rgba(0,0,0,0.12);
+  .music-ctrl { position: fixed; top: 0.7rem; right: 0.7rem; z-index: 20; display: none; }
+  body.teacher-mode .music-ctrl { display: block; }
+  /* 평소에는 음표 버튼만 */
+  .music-icon {
+    width: 2.6rem; height: 2.6rem; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.94); color: #2e7d32; border: 2px solid #a5d6a7; cursor: pointer;
+    box-shadow: 0 0.2rem 0.6rem rgba(0,0,0,0.12); padding: 0;
   }
-  body.teacher-mode .music-ctrl { display: flex; }
+  .music-icon svg { width: 1.3rem; height: 1.3rem; }
+  .music-icon .slash { display: none; }
+  .music-ctrl.off .music-icon { color: #90a4ae; border-color: #cfd8dc; }
+  .music-ctrl.off .music-icon .slash { display: inline; }
+  /* 음표를 누르면 펼쳐지는 조절 창 */
+  .music-panel {
+    position: absolute; top: 3.1rem; right: 0; display: none; align-items: center; gap: 0.55rem;
+    background: #fff; border: 2px solid #a5d6a7; border-radius: 1rem; padding: 0.5rem 0.75rem;
+    box-shadow: 0 0.4rem 1rem rgba(0,0,0,0.15); white-space: nowrap; animation: fadeIn 0.2s;
+  }
+  .music-ctrl.open .music-panel { display: flex; }
   .music-btn {
-    display: flex; align-items: center; gap: 0.35rem; background: transparent; border: none;
-    color: #2e7d32; border-radius: 2rem; padding: 0.25rem 0.4rem; font-size: 0.95rem; cursor: pointer;
+    background: #e8f5e9; border: none; color: #2e7d32; border-radius: 0.7rem;
+    padding: 0.35rem 0.7rem; font-size: 0.95rem; cursor: pointer;
   }
-  .music-vol { width: 6.5rem; accent-color: #43a047; cursor: pointer; }
+  .music-ctrl.off .music-btn { background: #eceff1; color: #78909c; }
+  .music-vol { width: 7rem; accent-color: #43a047; cursor: pointer; }
   .music-vol-num { min-width: 2rem; text-align: right; font-size: 0.9rem; color: #37474f; }
   .music-ctrl.off .music-vol { accent-color: #b0bec5; }
-  .music-btn svg { width: 1.2rem; height: 1.2rem; }
-  .music-btn .slash { display: none; }
-  .music-btn.off { color: #90a4ae; }
-  .music-btn.off .slash { display: inline; }
 
   /* UNI 과학 개념 */
   .concept {
@@ -356,6 +366,7 @@
     /* 교사용 음악 조절은 화면 위쪽에 따로 자리 */
     body.teacher-mode { padding-top: 3.4rem; }
     .music-ctrl { left: 50%; right: auto; transform: translateX(-50%); top: 0.5rem; }
+    .music-panel { right: auto; left: 50%; transform: translateX(-50%); animation: none; }
   }
 
 </style>
@@ -365,12 +376,14 @@
 <div id="game-container">
   <div id="toast" class="num"></div>
   <div id="music-ctrl" class="music-ctrl">
-  <button id="music-btn" class="music-btn on" onclick="toggleMusic()" aria-label="배경음악">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="slash" d="M3 3l18 18"/></svg>
-    <span id="music-label">음악 켬</span>
-  </button>
-  <input type="range" id="music-vol" class="music-vol" min="0" max="100" step="5" value="25" aria-label="음량" oninput="setMusicVolume(this.value)">
-  <span id="music-vol-num" class="music-vol-num num">25</span>
+    <button id="music-icon" class="music-icon" onclick="toggleMusicPanel(event)" aria-label="배경음악">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="slash" d="M3 3l18 18"/></svg>
+    </button>
+    <div id="music-panel" class="music-panel">
+      <button id="music-btn" class="music-btn" onclick="toggleMusic()"><span id="music-label">음악 켬</span></button>
+      <input type="range" id="music-vol" class="music-vol" min="0" max="100" step="5" value="25" aria-label="음량" oninput="setMusicVolume(this.value)">
+      <span id="music-vol-num" class="music-vol-num num">25</span>
+    </div>
   </div>
   <h1 id="header">[작전명: 2050 그린 플래닛]</h1>
 
@@ -570,10 +583,17 @@
       else a.volume = Math.max(0, Math.min(1, v));
     }, 40);
   }
+  function toggleMusicPanel(e) {
+    e.stopPropagation();
+    $('music-ctrl').classList.toggle('open');
+  }
+  // 조절 창 바깥을 누르면 닫힘
+  document.addEventListener('pointerdown', (e) => {
+    const c = $('music-ctrl');
+    if (c && c.classList.contains('open') && !c.contains(e.target)) c.classList.remove('open');
+  });
   function toggleMusic() {
     musicOn = !musicOn;
-    $('music-btn').classList.toggle('on', musicOn);
-    $('music-btn').classList.toggle('off', !musicOn);
     $('music-ctrl').classList.toggle('off', !musicOn);
     $('music-label').textContent = musicOn ? '음악 켬' : '음악 끔';
     if (!bgm) return;
