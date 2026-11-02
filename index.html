@@ -559,7 +559,7 @@
     else { const a = bgm; fadeAudio(a, 0, () => a.pause()); }
   }
 
-  // 타자 효과음 (교사용·학생용): 파일 없이 짧은 전자음
+  // 타자 효과음 (교사용만): 파일 없이 짧은 전자음
   let audioCtx = null;
   function unlockAudio() {
     try {
@@ -570,7 +570,7 @@
   document.addEventListener('pointerdown', unlockAudio, { passive: true });
   document.addEventListener('keydown', unlockAudio);
   function typeTick() {
-    if (!audioCtx || audioCtx.state !== 'running') return;
+    if (MODE !== 'teacher' || !audioCtx || audioCtx.state !== 'running') return; // 교사용만
     const t = audioCtx.currentTime;
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type = 'square';
